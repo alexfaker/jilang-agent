@@ -3,8 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
+	"github.com/alexfaker/jilang-agent/config"
 	"github.com/alexfaker/jilang-agent/models"
 	"github.com/alexfaker/jilang-agent/pkg/database"
 	"github.com/alexfaker/jilang-agent/utils"
@@ -15,7 +15,7 @@ import (
 var validate = validator.New()
 
 // Login 处理用户登录
-func Login(db *database.DB, logger *zap.SugaredLogger) http.HandlerFunc {
+func Login(db *database.DB, logger *zap.SugaredLogger, cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input models.UserLoginInput
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -32,23 +32,19 @@ func Login(db *database.DB, logger *zap.SugaredLogger) http.HandlerFunc {
 		user, err := models.GetUserByUsername(db.DB, input.Username)
 		if err != nil {
 			logger.Errorw("查找用户失败", "username", input.Username, "error", err)
-			utils.RespondWithError(w, http.StatusInternalServerError, "登录时发生错误")
-			return
-		}
-
-		if user == nil {
 			utils.RespondWithError(w, http.StatusUnauthorized, "用户名或密码不正确")
 			return
 		}
 
 		// 验证密码
 		if !user.CheckPassword(input.Password) {
+			logger.Warnw("密码验证失败", "username", input.Username)
 			utils.RespondWithError(w, http.StatusUnauthorized, "用户名或密码不正确")
 			return
 		}
 
 		// 生成令牌
-		token, err := utils.GenerateJWT(user.ID, user.Username, user.Role)
+		token, err := utils.GenerateJWT(user.ID, user.Username, user.Role, cfg.Auth.JWTSecret, cfg.Auth.TokenExpiration)
 		if err != nil {
 			logger.Errorw("生成JWT失败", "userID", user.ID, "error", err)
 			utils.RespondWithError(w, http.StatusInternalServerError, "登录时发生错误")
@@ -56,28 +52,30 @@ func Login(db *database.DB, logger *zap.SugaredLogger) http.HandlerFunc {
 		}
 
 		// 更新最后登录时间
-		now := time.Now()
-		user.LastLoginAt = &now
-		// TODO: 更新用户的最后登录时间
+		if err := user.UpdateLastLogin(db.DB); err != nil {
+			logger.Warnw("更新最后登录时间失败", "userID", user.ID, "error", err)
+			// 不中断处理，继续返回令牌
+		}
 
 		// 返回令牌
 		utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
 			"token": token,
 			"user": map[string]interface{}{
-				"id":        user.ID,
-				"username":  user.Username,
-				"email":     user.Email,
-				"fullName":  user.FullName,
-				"avatar":    user.Avatar,
-				"role":      user.Role,
-				"createdAt": user.CreatedAt,
+				"id":          user.ID,
+				"username":    user.Username,
+				"email":       user.Email,
+				"fullName":    user.FullName,
+				"avatar":      user.Avatar,
+				"role":        user.Role,
+				"createdAt":   user.CreatedAt,
+				"lastLoginAt": user.LastLoginAt,
 			},
 		})
 	}
 }
 
 // Register 处理用户注册
-func Register(db *database.DB, logger *zap.SugaredLogger) http.HandlerFunc {
+func Register(db *database.DB, logger *zap.SugaredLogger, cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input models.UserRegisterInput
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -90,47 +88,53 @@ func Register(db *database.DB, logger *zap.SugaredLogger) http.HandlerFunc {
 			return
 		}
 
-		// 检查用户名是否已存在
-		existingUser, _ := models.GetUserByUsername(db.DB, input.Username)
-		if existingUser != nil {
-			utils.RespondWithError(w, http.StatusConflict, "用户名已被使用")
-			return
-		}
-
-		// 创建用户
+		// 创建用户（包含了检查用户名和邮箱是否已存在的逻辑）
 		user, err := models.CreateUser(db.DB, input)
 		if err != nil {
 			logger.Errorw("创建用户失败", "username", input.Username, "error", err)
-			utils.RespondWithError(w, http.StatusInternalServerError, "注册时发生错误")
+
+			// 检查错误类型并返回适当的状态码
+			if err.Error() == "用户名已存在" || err.Error() == "邮箱已存在" {
+				utils.RespondWithError(w, http.StatusConflict, err.Error())
+			} else {
+				utils.RespondWithError(w, http.StatusInternalServerError, "注册时发生错误")
+			}
 			return
 		}
 
 		// 生成令牌
-		token, err := utils.GenerateJWT(user.ID, user.Username, user.Role)
+		token, err := utils.GenerateJWT(user.ID, user.Username, user.Role, cfg.Auth.JWTSecret, cfg.Auth.TokenExpiration)
 		if err != nil {
 			logger.Errorw("生成JWT失败", "userID", user.ID, "error", err)
 			utils.RespondWithError(w, http.StatusInternalServerError, "注册时发生错误")
 			return
 		}
 
+		// 更新最后登录时间
+		if err := user.UpdateLastLogin(db.DB); err != nil {
+			logger.Warnw("更新最后登录时间失败", "userID", user.ID, "error", err)
+			// 不中断处理，继续返回令牌
+		}
+
 		// 返回用户信息和令牌
 		utils.RespondWithJSON(w, http.StatusCreated, map[string]interface{}{
 			"token": token,
 			"user": map[string]interface{}{
-				"id":        user.ID,
-				"username":  user.Username,
-				"email":     user.Email,
-				"fullName":  user.FullName,
-				"avatar":    user.Avatar,
-				"role":      user.Role,
-				"createdAt": user.CreatedAt,
+				"id":          user.ID,
+				"username":    user.Username,
+				"email":       user.Email,
+				"fullName":    user.FullName,
+				"avatar":      user.Avatar,
+				"role":        user.Role,
+				"createdAt":   user.CreatedAt,
+				"lastLoginAt": user.LastLoginAt,
 			},
 		})
 	}
 }
 
 // RefreshToken 刷新JWT令牌
-func RefreshToken(db *database.DB, logger *zap.SugaredLogger) http.HandlerFunc {
+func RefreshToken(db *database.DB, logger *zap.SugaredLogger, cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// 从请求上下文中获取用户信息（在认证中间件中设置）
 		userID, ok := r.Context().Value("userID").(int64)
@@ -151,17 +155,56 @@ func RefreshToken(db *database.DB, logger *zap.SugaredLogger) http.HandlerFunc {
 			return
 		}
 
+		// 检查用户是否存在
+		user, err := models.GetUserByID(db.DB, userID)
+		if err != nil {
+			logger.Errorw("刷新令牌时获取用户失败", "userID", userID, "error", err)
+			utils.RespondWithError(w, http.StatusUnauthorized, "无效的用户")
+			return
+		}
+
 		// 生成新令牌
-		token, err := utils.GenerateJWT(userID, username, role)
+		token, err := utils.GenerateJWT(userID, username, role, cfg.Auth.JWTSecret, cfg.Auth.TokenExpiration)
 		if err != nil {
 			logger.Errorw("刷新JWT失败", "userID", userID, "error", err)
 			utils.RespondWithError(w, http.StatusInternalServerError, "刷新令牌时发生错误")
 			return
 		}
 
-		// 返回新令牌
-		utils.RespondWithJSON(w, http.StatusOK, map[string]string{
+		// 返回新令牌和用户信息
+		utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
 			"token": token,
+			"user": map[string]interface{}{
+				"id":          user.ID,
+				"username":    user.Username,
+				"email":       user.Email,
+				"fullName":    user.FullName,
+				"avatar":      user.Avatar,
+				"role":        user.Role,
+				"createdAt":   user.CreatedAt,
+				"lastLoginAt": user.LastLoginAt,
+			},
+		})
+	}
+}
+
+// Logout 用户登出
+func Logout(db *database.DB, logger *zap.SugaredLogger, cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// 设置清除cookie
+		http.SetCookie(w, &http.Cookie{
+			Name:     "jwt",
+			Value:    "",
+			Path:     "/",
+			MaxAge:   -1,
+			HttpOnly: true,
+			Secure:   cfg.Server.Secure,
+			SameSite: http.SameSiteStrictMode,
+		})
+
+		// 返回成功信息
+		utils.RespondWithJSON(w, http.StatusOK, map[string]string{
+			"message": "已成功登出",
 		})
 	}
 }

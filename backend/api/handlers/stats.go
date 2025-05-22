@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/alexfaker/jilang-agent/models"
 	"github.com/alexfaker/jilang-agent/pkg/database"
@@ -9,122 +10,155 @@ import (
 	"go.uber.org/zap"
 )
 
-// DashboardStats 仪表盘统计数据结构
+// DashboardStats 仪表盘统计数据
 type DashboardStats struct {
-	TotalWorkflows     int64                      `json:"total_workflows"`
-	ActiveWorkflows    int64                      `json:"active_workflows"`
-	TotalExecutions    int64                      `json:"total_executions"`
-	TodayExecutions    int64                      `json:"today_executions"`
-	SuccessRate        float64                    `json:"success_rate"`
-	RecentExecutions   []models.WorkflowExecution `json:"recent_executions"`
-	ExecutionsByStatus map[string]int64           `json:"executions_by_status"`
-	ExecutionsTrend    []DailyExecutions          `json:"executions_trend"`
+	TotalWorkflows     int                         `json:"totalWorkflows"`
+	TotalExecutions    int                         `json:"totalExecutions"`
+	SuccessRate        float64                     `json:"successRate"`
+	RecentExecutions   []*models.WorkflowExecution `json:"recentExecutions"`
+	ExecutionsByStatus map[string]int              `json:"executionsByStatus"`
+	ExecutionsByDay    []DailyExecutionStats       `json:"executionsByDay"`
 }
 
-// DailyExecutions 每日执行统计
-type DailyExecutions struct {
-	Date         string `json:"date"`
-	Count        int64  `json:"count"`
-	SuccessCount int64  `json:"success_count"`
-	FailureCount int64  `json:"failure_count"`
+// DailyExecutionStats 每日执行统计
+type DailyExecutionStats struct {
+	Date      string `json:"date"`      // 格式: YYYY-MM-DD
+	Count     int    `json:"count"`     // 总数
+	Succeeded int    `json:"succeeded"` // 成功数
+	Failed    int    `json:"failed"`    // 失败数
 }
 
 // GetDashboardStats 获取仪表盘统计数据
-func GetDashboardStats(w http.ResponseWriter, r *http.Request) {
-	// 从上下文获取用户ID
-	userID := r.Context().Value("userID").(int64)
+func GetDashboardStats(db *database.DB, logger *zap.SugaredLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// 从请求上下文中获取用户ID
+		userID, ok := r.Context().Value("userID").(int64)
+		if !ok {
+			utils.RespondWithError(w, http.StatusUnauthorized, "无效的用户身份")
+			return
+		}
 
-	// 初始化统计数据
-	stats := DashboardStats{
-		ExecutionsByStatus: make(map[string]int64),
-	}
-
-	// 获取工作流总数
-	totalWorkflows, err := models.CountWorkflows(database.DB, userID, "")
-	if err != nil {
-		zap.L().Error("获取工作流总数失败", zap.Error(err))
-		utils.RespondWithError(w, http.StatusInternalServerError, "获取统计数据失败")
-		return
-	}
-	stats.TotalWorkflows = totalWorkflows
-
-	// 获取活跃工作流数量
-	activeWorkflows, err := models.CountWorkflows(database.DB, userID, string(models.StatusActive))
-	if err != nil {
-		zap.L().Error("获取活跃工作流数量失败", zap.Error(err))
-		utils.RespondWithError(w, http.StatusInternalServerError, "获取统计数据失败")
-		return
-	}
-	stats.ActiveWorkflows = activeWorkflows
-
-	// 获取执行总数
-	totalExecutions, err := models.CountExecutions(database.DB, userID, 0, "")
-	if err != nil {
-		zap.L().Error("获取执行总数失败", zap.Error(err))
-		utils.RespondWithError(w, http.StatusInternalServerError, "获取统计数据失败")
-		return
-	}
-	stats.TotalExecutions = totalExecutions
-
-	// 获取今日执行数量
-	// 注意：这里直接调用模型方法，不需要传递日期参数
-	todayExecutions, err := models.CountTodayExecutions(database.DB, userID)
-	if err != nil {
-		zap.L().Error("获取今日执行数量失败", zap.Error(err))
-		utils.RespondWithError(w, http.StatusInternalServerError, "获取统计数据失败")
-		return
-	}
-	stats.TodayExecutions = todayExecutions
-
-	// 获取成功率
-	if totalExecutions > 0 {
-		successExecutions, err := models.CountExecutions(database.DB, userID, 0, string(models.StatusSuccess))
+		// 获取工作流总数
+		workflowCount, err := models.CountWorkflows(db.DB, userID)
 		if err != nil {
-			zap.L().Error("获取成功执行数量失败", zap.Error(err))
+			logger.Errorw("获取工作流数量失败", "userID", userID, "error", err)
 			utils.RespondWithError(w, http.StatusInternalServerError, "获取统计数据失败")
 			return
 		}
-		stats.SuccessRate = float64(successExecutions) / float64(totalExecutions) * 100
-	} else {
-		stats.SuccessRate = 0
-	}
 
-	// 获取最近的执行记录
-	recentExecutions, err := models.ListExecutions(database.DB, userID, 0, "", 5, 0)
-	if err != nil {
-		zap.L().Error("获取最近执行记录失败", zap.Error(err))
-		utils.RespondWithError(w, http.StatusInternalServerError, "获取统计数据失败")
-		return
-	}
-	stats.RecentExecutions = recentExecutions
-
-	// 按状态统计执行数量
-	for _, status := range []models.ExecutionStatus{models.StatusSuccess, models.StatusFailed, models.StatusRunning, models.StatusPending} {
-		count, err := models.CountExecutions(database.DB, userID, 0, string(status))
+		// 获取执行总数和成功率
+		executionStats, err := models.GetExecutionStats(db.DB, userID)
 		if err != nil {
-			zap.L().Error("获取状态统计失败", zap.Error(err), zap.String("status", string(status)))
-			continue
+			logger.Errorw("获取执行统计失败", "userID", userID, "error", err)
+			utils.RespondWithError(w, http.StatusInternalServerError, "获取统计数据失败")
+			return
 		}
-		stats.ExecutionsByStatus[string(status)] = count
-	}
 
-	// 获取过去7天的执行趋势
-	trend, err := models.GetExecutionTrend(database.DB, userID, 7)
-	if err != nil {
-		zap.L().Error("获取执行趋势失败", zap.Error(err))
-	} else {
-		// 转换为前端需要的格式
-		for date, counts := range trend {
-			dailyStats := DailyExecutions{
-				Date:         date,
-				Count:        counts.Total,
-				SuccessCount: counts.Success,
-				FailureCount: counts.Failed,
+		// 计算成功率
+		successRate := 0.0
+		if executionStats.Total > 0 {
+			successRate = float64(executionStats.Succeeded) / float64(executionStats.Total) * 100
+		}
+
+		// 获取按状态分组的执行数量
+		executionsByStatus := map[string]int{
+			"pending":   executionStats.Pending,
+			"running":   executionStats.Running,
+			"succeeded": executionStats.Succeeded,
+			"failed":    executionStats.Failed,
+			"canceled":  executionStats.Canceled,
+		}
+
+		// 获取最近的执行记录
+		recentExecutions, err := models.ListExecutions(db.DB, userID, nil, nil, 5, 0)
+		if err != nil {
+			logger.Errorw("获取最近执行记录失败", "userID", userID, "error", err)
+			utils.RespondWithError(w, http.StatusInternalServerError, "获取统计数据失败")
+			return
+		}
+
+		// 获取过去7天的每日执行统计
+		now := time.Now()
+		startDate := now.AddDate(0, 0, -6) // 7天前
+		dailyStats := make([]DailyExecutionStats, 0, 7)
+
+		for i := 0; i < 7; i++ {
+			date := startDate.AddDate(0, 0, i)
+			dateStr := date.Format("2006-01-02")
+			nextDate := date.AddDate(0, 0, 1)
+
+			// 获取当天的执行统计
+			stats, err := models.GetExecutionStatsByDateRange(db.DB, userID, date, nextDate)
+			if err != nil {
+				logger.Errorw("获取每日执行统计失败", "userID", userID, "date", dateStr, "error", err)
+				continue
 			}
-			stats.ExecutionsTrend = append(stats.ExecutionsTrend, dailyStats)
-		}
-	}
 
-	// 返回统计数据
-	utils.RespondWithJSON(w, http.StatusOK, stats)
+			dailyStats = append(dailyStats, DailyExecutionStats{
+				Date:      dateStr,
+				Count:     stats.Total,
+				Succeeded: stats.Succeeded,
+				Failed:    stats.Failed,
+			})
+		}
+
+		// 组装仪表盘数据
+		dashboardStats := DashboardStats{
+			TotalWorkflows:     workflowCount,
+			TotalExecutions:    executionStats.Total,
+			SuccessRate:        successRate,
+			RecentExecutions:   recentExecutions,
+			ExecutionsByStatus: executionsByStatus,
+			ExecutionsByDay:    dailyStats,
+		}
+
+		// 返回结果
+		utils.RespondWithJSON(w, http.StatusOK, dashboardStats)
+	}
+}
+
+// GetWorkflowStats 获取工作流统计数据
+func GetWorkflowStats(db *database.DB, logger *zap.SugaredLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// 从请求上下文中获取用户ID
+		userID, ok := r.Context().Value("userID").(int64)
+		if !ok {
+			utils.RespondWithError(w, http.StatusUnauthorized, "无效的用户身份")
+			return
+		}
+
+		// 获取按工作流分组的统计数据
+		stats, err := models.GetExecutionStatsByWorkflow(db.DB, userID)
+		if err != nil {
+			logger.Errorw("获取工作流统计失败", "userID", userID, "error", err)
+			utils.RespondWithError(w, http.StatusInternalServerError, "获取统计数据失败")
+			return
+		}
+
+		// 返回结果
+		utils.RespondWithJSON(w, http.StatusOK, stats)
+	}
+}
+
+// GetExecutionStats 获取执行统计数据
+func GetExecutionStats(db *database.DB, logger *zap.SugaredLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// 从请求上下文中获取用户ID
+		userID, ok := r.Context().Value("userID").(int64)
+		if !ok {
+			utils.RespondWithError(w, http.StatusUnauthorized, "无效的用户身份")
+			return
+		}
+
+		// 获取执行统计数据
+		stats, err := models.GetExecutionStats(db.DB, userID)
+		if err != nil {
+			logger.Errorw("获取执行统计失败", "userID", userID, "error", err)
+			utils.RespondWithError(w, http.StatusInternalServerError, "获取统计数据失败")
+			return
+		}
+
+		// 返回结果
+		utils.RespondWithJSON(w, http.StatusOK, stats)
+	}
 }

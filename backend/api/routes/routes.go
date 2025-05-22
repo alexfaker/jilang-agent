@@ -43,13 +43,24 @@ func InitRoutes(db *database.DB, logger *zap.SugaredLogger, cfg *config.Config) 
 		// 公共路由
 		r.Group(func(r chi.Router) {
 			// 身份认证
-			r.Post("/auth/login", handlers.Login(db, logger))
-			r.Post("/auth/register", handlers.Register(db, logger))
-			r.Post("/auth/refresh", handlers.RefreshToken(db, logger))
+			r.Post("/auth/login", handlers.Login(db, logger, cfg))
+			r.Post("/auth/register", handlers.Register(db, logger, cfg))
+			r.Post("/auth/refresh", handlers.RefreshToken(db, logger, cfg))
+			r.Post("/auth/logout", handlers.Logout())
 
 			// 健康检查
 			r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte("OK"))
+			})
+
+			// 代理分类路由（公开）
+			r.Get("/agents/categories", handlers.GetAgentCategories(db, logger))
+
+			// 公开代理列表路由
+			r.Get("/agents/public", func(w http.ResponseWriter, r *http.Request) {
+				// 设置仅查询公开代理
+				r.URL.Query().Set("is_public", "true")
+				handlers.ListAgents(db, logger).ServeHTTP(w, r)
 			})
 		})
 
@@ -79,12 +90,16 @@ func InitRoutes(db *database.DB, logger *zap.SugaredLogger, cfg *config.Config) 
 			r.Route("/executions", func(r chi.Router) {
 				r.Get("/", handlers.ListExecutions(db, logger))
 				r.Get("/{id}", handlers.GetExecution(db, logger))
+				r.Delete("/{id}/cancel", handlers.CancelExecution(db, logger))
 			})
 
 			// 代理市场
 			r.Route("/agents", func(r chi.Router) {
 				r.Get("/", handlers.ListAgents(db, logger))
 				r.Get("/{id}", handlers.GetAgent(db, logger))
+				r.Post("/", handlers.CreateAgent(db, logger))
+				r.Put("/{id}", handlers.UpdateAgent(db, logger))
+				r.Delete("/{id}", handlers.DeleteAgent(db, logger))
 			})
 
 			// 统计数据

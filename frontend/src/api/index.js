@@ -161,6 +161,26 @@ export const agentApi = {
   // 获取单个代理
   getAgent(id) {
     return api.get(`/agents/${id}`);
+  },
+  
+  // 获取代理分类
+  getAgentCategories() {
+    return api.get('/agents/categories');
+  },
+  
+  // 创建代理
+  createAgent(data) {
+    return api.post('/agents', data);
+  },
+  
+  // 更新代理
+  updateAgent(id, data) {
+    return api.put(`/agents/${id}`, data);
+  },
+  
+  // 删除代理
+  deleteAgent(id) {
+    return api.delete(`/agents/${id}`);
   }
 };
 
