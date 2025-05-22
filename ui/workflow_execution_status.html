@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 工作流平台 - 执行状态</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f7fa;
+        }
+        .card {
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .sidebar-icon {
+            transition: all 0.2s ease;
+        }
+        .sidebar-icon:hover {
+            transform: translateY(-2px);
+        }
+        .sidebar-active {
+            border-left: 3px solid #4f46e5;
+            background-color: #eff6ff;
+            color: #4f46e5;
+        }
+        .badge {
+            padding: 0.125rem 0.5rem;
+            border-radius: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .badge-active {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .step-inactive {
+            color: #9ca3af;
+        }
+        .step-active {
+            color: #4f46e5;
+            font-weight: 600;
+        }
+        .step-completed {
+            color: #10b981;
+        }
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            background-color: #e5e7eb;
+            overflow: hidden;
+        }
+        .progress-value {
+            height: 100%;
+            background-color: #4f46e5;
+            transition: width 0.3s ease;
+        }
+        .status-running {
+            color: #2563eb;
+            background-color: #dbeafe;
+        }
+        .status-success {
+            color: #16a34a;
+            background-color: #dcfce7;
+        }
+        .status-warning {
+            color: #ca8a04;
+            background-color: #fef3c7;
+        }
+        .status-error {
+            color: #dc2626;
+            background-color: #fee2e2;
+        }
+        .log-console {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-success {
+            color: #4ade80;
+        }
+        .log-info {
+            color: #60a5fa;
+        }
+        .log-warning {
+            color: #fcd34d;
+        }
+        .log-error {
+            color: #f87171;
+        }
+        .agent-node {
+            position: relative;
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        .agent-node.active {
+            border-left: 3px solid #4f46e5;
+        }
+        .agent-node.completed {
+            border-left: 3px solid #10b981;
+        }
+        .agent-node.error {
+            border-left: 3px solid #ef4444;
+        }
+        .agent-node.waiting {
+            border-left: 3px solid #9ca3af;
+            opacity: 0.7;
+        }
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+    <!-- 侧边栏 -->
+    <aside class="w-20 md:w-64 bg-white shadow-md flex flex-col">
+        <!-- 侧边栏头部 - Logo -->
+        <div class="p-4 border-b flex items-center justify-center md:justify-start">
+            <i class="fas fa-robot text-indigo-600 text-2xl mr-2"></i>
+            <span class="hidden md:block text-xl font-bold text-gray-800">AI Agent 平台</span>
+        </div>
+        
+        <!-- 侧边栏导航 -->
+        <nav class="flex-1 overflow-y-auto py-4">
+            <!-- 分类标签：工作台 -->
+            <div class="px-4 py-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">工作台</span>
+            </div>
+            <ul class="mb-4">
+                <!-- 仪表盘 -->
+                <li>
+                    <a href="dashboard.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-tachometer-alt text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">仪表盘</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">查看平台概览</div>
+                    </a>
+                </li>
+                
+                <!-- 工作流 -->
+                <li>
+                    <a href="workflows.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-project-diagram text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">我的工作流</span>
+                        <span class="hidden md:flex ml-auto bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-1 rounded-full">12</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">管理您的AI工作流</div>
+                    </a>
+                </li>
+                
+                <!-- AI代理市场 -->
+                <li>
+                    <a href="agent_market.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-store text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">AI代理市场</span>
+                        <span class="hidden md:flex ml-auto bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">新</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">探索和使用AI代理</div>
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- 分类标签：分析 -->
+            <div class="px-4 py-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">分析</span>
+            </div>
+            <ul class="mb-4">
+                <!-- 执行历史 -->
+                <li>
+                    <a href="execution_history.html" class="group relative flex items-center px-4 py-3 text-indigo-600 sidebar-active hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-history text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">执行历史</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">查看历史执行记录</div>
+                    </a>
+                </li>
+                
+                <!-- 统计分析 -->
+                <li>
+                    <a href="stats.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-chart-bar text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">统计分析</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">查看使用数据和分析</div>
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- 分类标签：系统 -->
+            <div class="px-4 py-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">系统</span>
+            </div>
+            <ul>
+                <!-- 设置 -->
+                <li>
+                    <a href="settings.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-cog text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">设置</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">系统设置和偏好</div>
+                    </a>
+                </li>
+                
+                <!-- 帮助中心 -->
+                <li>
+                    <a href="help.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-question-circle text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">帮助中心</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">获取帮助和教程</div>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <!-- 侧边栏底部 - 用户信息 -->
+        <div class="border-t p-4">
+            <a href="profile.html" class="group relative flex items-center text-gray-700 hover:text-indigo-600">
+                <div class="relative">
+                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=40&auto=format&fit=crop" class="w-8 h-8 rounded-full border-2 border-white" alt="用户头像">
+                    <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white"></span>
+                </div>
+                <div class="hidden md:block ml-3">
+                    <p class="text-sm font-medium">张三</p>
+                    <p class="text-xs text-gray-500">查看个人资料</p>
+                </div>
+                <!-- 工具提示 -->
+                <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">管理您的个人资料和设置</div>
+            </a>
+        </div>
+        
+        <!-- 主题开关 -->
+        <div class="border-t p-4 flex items-center justify-center md:justify-between text-gray-700">
+            <span class="hidden md:block text-xs text-gray-500">暗黑模式</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" value="" class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+        </div>
+    </aside>
+
+    <!-- 主要内容区 -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- 顶部导航栏 -->
+        <header class="bg-white shadow-sm z-10">
+            <div class="flex items-center justify-between p-4">
+                <!-- 面包屑导航 -->
+                <div class="flex items-center">
+                    <a href="workflows.html" class="text-gray-500 hover:text-gray-700">工作流</a>
+                    <i class="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+                    <a href="workflow_detail.html" class="text-gray-500 hover:text-gray-700">数据处理自动化</a>
+                    <i class="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+                    <span class="text-gray-800 font-medium">执行状态</span>
+                </div>
+                
+                <!-- 右侧操作区 -->
+                <div class="flex items-center space-x-4">
+                    <button class="text-gray-600 hover:text-gray-800 px-3 py-2">
+                        <i class="fas fa-redo-alt"></i>
+                        <span class="ml-1 hidden md:inline">刷新</span>
+                    </button>
+                    
+                    <button class="text-red-600 hover:text-red-800 px-3 py-2">
+                        <i class="fas fa-stop-circle"></i>
+                        <span class="ml-1 hidden md:inline">终止执行</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 内容区域 -->
+        <div class="flex-1 overflow-y-auto p-6">
+            <!-- 执行步骤指示器 -->
+            <div class="bg-white rounded-lg p-6 mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+                    <!-- 步骤指示器 -->
+                    <div class="flex flex-col md:flex-row mb-6 md:mb-0 w-full">
+                        <div class="flex items-center mb-4 md:mb-0">
+                            <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-medium">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <span class="ml-2 step-completed">配置信息</span>
+                            <div class="hidden md:block w-12 h-1 mx-2 bg-green-500"></div>
+                        </div>
+                        
+                        <div class="flex items-center mb-4 md:mb-0">
+                            <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-medium">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <span class="ml-2 step-completed">参数设置</span>
+                            <div class="hidden md:block w-12 h-1 mx-2 bg-green-500"></div>
+                        </div>
+                        
+                        <div class="flex items-center mb-4 md:mb-0">
+                            <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-medium pulse">3</div>
+                            <span class="ml-2 step-active">执行监控</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 工作流状态 -->
+                    <div class="flex items-center">
+                        <span class="px-3 py-1 rounded-full badge status-running flex items-center">
+                            <i class="fas fa-spinner fa-spin mr-1"></i>
+                            <span>正在执行</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 执行信息摘要 -->
+            <div class="bg-white rounded-lg p-6 mb-6">
+                <div class="flex flex-col md:flex-row justify-between gap-4">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4 flex-shrink-0">
+                            <i class="fas fa-robot text-blue-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-800">数据处理自动化</h2>
+                            <div class="flex items-center mt-1">
+                                <span class="text-sm text-gray-600">执行ID: EXE-20230615-001</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-4">
+                        <div class="text-center">
+                            <p class="text-sm text-gray-500">开始时间</p>
+                            <p class="font-medium">2023-06-15 15:32:45</p>
+                        </div>
+                        
+                        <div class="text-center">
+                            <p class="text-sm text-gray-500">已运行</p>
+                            <p class="font-medium">1分20秒</p>
+                        </div>
+                        
+                        <div class="text-center">
+                            <p class="text-sm text-gray-500">预计剩余</p>
+                            <p class="font-medium">1分10秒</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 总体进度条 -->
+                <div class="mt-6">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-700">总体进度</span>
+                        <span class="text-sm font-medium text-gray-700">55%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-value" style="width: 55%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 执行详情 -->
+            <div class="bg-white rounded-lg overflow-hidden mb-6">
+                <div class="border-b border-gray-200">
+                    <nav class="flex">
+                        <button class="px-6 py-4 text-sm font-medium text-indigo-600 border-b-2 border-indigo-600 focus:outline-none">
+                            执行流程
+                        </button>
+                        <button class="px-6 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none">
+                            日志
+                        </button>
+                        <button class="px-6 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none">
+                            输出结果
+                        </button>
+                    </nav>
+                </div>
+                
+                <div class="p-6">
+                    <!-- 执行流程可视化 -->
+                    <div class="space-y-4 mb-6">
+                        <h3 class="text-lg font-medium text-gray-900">执行流程</h3>
+                        
+                        <!-- 代理执行节点列表 -->
+                        <div class="space-y-4 py-2">
+                            <!-- 代理节点1：数据收集和清洗（已完成） -->
+                            <div class="agent-node completed">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex items-start">
+                                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3 flex-shrink-0">
+                                            <i class="fas fa-database text-green-600"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-gray-800">数据收集和清洗</h4>
+                                            <p class="text-sm text-gray-500">收集数据并进行预处理，移除无效和重复数据</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col items-end">
+                                        <span class="px-2 py-1 rounded-full text-xs status-success">已完成</span>
+                                        <span class="text-xs text-gray-500 mt-1">用时: 45秒</span>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-xs font-medium text-gray-700">进度</span>
+                                        <span class="text-xs font-medium text-gray-700">100%</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-value bg-green-500" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 代理节点2：数据分析（正在进行） -->
+                            <div class="agent-node active">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex items-start">
+                                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0 pulse">
+                                            <i class="fas fa-chart-bar text-blue-600"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-gray-800">数据分析</h4>
+                                            <p class="text-sm text-gray-500">对数据进行统计分析和模式识别</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col items-end">
+                                        <span class="px-2 py-1 rounded-full text-xs status-running">进行中</span>
+                                        <span class="text-xs text-gray-500 mt-1">用时: 35秒</span>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-xs font-medium text-gray-700">进度</span>
+                                        <span class="text-xs font-medium text-gray-700">65%</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-value" style="width: 65%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 代理节点3：报告生成（等待中） -->
+                            <div class="agent-node waiting">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex items-start">
+                                        <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3 flex-shrink-0">
+                                            <i class="fas fa-file-alt text-gray-500"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-gray-800">报告生成</h4>
+                                            <p class="text-sm text-gray-500">生成分析报告并格式化</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col items-end">
+                                        <span class="px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-600">等待中</span>
+                                        <span class="text-xs text-gray-500 mt-1">预计用时: 40秒</span>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-xs font-medium text-gray-700">进度</span>
+                                        <span class="text-xs font-medium text-gray-700">0%</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-value" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 实时日志输出 -->
+                    <div class="mt-8">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-lg font-medium text-gray-900">执行日志</h3>
+                            <button class="text-sm text-indigo-600 hover:text-indigo-800">
+                                <i class="fas fa-download mr-1"></i> 下载完整日志
+                            </button>
+                        </div>
+                        
+                        <div class="log-console">
+<span class="log-info">[15:32:45] INFO: 工作流执行开始，ID: EXE-20230615-001</span>
+<span class="log-info">[15:32:46] INFO: 初始化数据收集和清洗代理</span>
+<span class="log-info">[15:32:47] INFO: 开始数据收集，源：user_upload.csv</span>
+<span class="log-warning">[15:32:52] WARN: 发现3条重复数据记录</span>
+<span class="log-info">[15:33:01] INFO: 数据清洗完成，处理1245条记录</span>
+<span class="log-success">[15:33:30] SUCCESS: 数据收集和清洗阶段完成</span>
+<span class="log-info">[15:33:31] INFO: 初始化数据分析代理</span>
+<span class="log-info">[15:33:32] INFO: 开始数据分析过程</span>
+<span class="log-info">[15:33:45] INFO: 执行统计分析中...</span>
+<span class="log-info">[15:34:05] INFO: 时间序列分析进行中，已完成65%...</span>
+<span class="log-info">[15:34:06] INFO: 当前内存使用率: 32%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 底部操作区 -->
+            <div class="bg-white rounded-lg p-4 flex justify-between items-center">
+                <div>
+                    <button class="text-gray-700 hover:text-gray-900 focus:outline-none">
+                        <i class="fas fa-bell"></i>
+                        <span class="ml-1">执行完成时通知我</span>
+                    </button>
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button type="button" class="text-red-600 hover:text-red-800 border border-red-300 px-4 py-2 rounded-lg text-sm font-medium">
+                        取消执行
+                    </button>
+                    <a href="execution_history.html" class="text-gray-700 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium">
+                        查看历史记录
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html> 

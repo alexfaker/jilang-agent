@@ -1,0 +1,50 @@
+{
+  "environment": "development",
+  "server": {
+    "host": "localhost",
+    "port": 8080,
+    "timeout": {
+      "read": 15,
+      "write": 15,
+      "idle": 60
+    },
+    "cors": {
+      "allowedOrigins": ["http://localhost:5173", "http://localhost:3000"],
+      "allowedMethods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      "allowedHeaders": ["Content-Type", "Authorization", "X-Requested-With"],
+      "maxAge": 300
+    }
+  },
+  "database": {
+    "driver": "mysql",
+    "host": "1.95.74.46",
+    "port": 3306,
+    "user": "root",
+    "password": "password",
+    "database": "workflow_platform",
+    "sslMode": "disable"
+  },
+  "auth": {
+    "jwtSecret": "dev-secret-key-change-in-production",
+    "tokenExpiration": 24
+  },
+  "storage": {
+    "type": "local",
+    "directory": "staticfiles",
+    "s3": {
+      "endpoint": "",
+      "region": "",
+      "bucket": "",
+      "accessKey": "",
+      "secretKey": ""
+    }
+  },
+  "logging": {
+    "level": "debug",
+    "directory": "logs",
+    "maxSize": 100,
+    "maxBackups": 7,
+    "maxAge": 30,
+    "compress": false
+  }
+}

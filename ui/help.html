@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 工作流平台 - 帮助中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f7fa;
+        }
+        .card {
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .sidebar-active {
+            border-left: 3px solid #4f46e5;
+            background-color: #eff6ff;
+            color: #4f46e5;
+        }
+        .help-card {
+            transition: all 0.3s ease;
+        }
+        .help-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+    <!-- 侧边栏 -->
+    <aside class="w-20 md:w-64 bg-white shadow-md flex flex-col">
+        <!-- 侧边栏头部 - Logo -->
+        <div class="p-4 border-b flex items-center justify-center md:justify-start">
+            <i class="fas fa-robot text-indigo-600 text-2xl mr-2"></i>
+            <span class="hidden md:block text-xl font-bold text-gray-800">AI 工作流平台</span>
+        </div>
+        
+        <!-- 侧边栏导航 -->
+        <nav class="flex-1 overflow-y-auto py-4">
+            <!-- 分类标签：工作台 -->
+            <div class="px-4 py-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">工作台</span>
+            </div>
+            <ul class="mb-4">
+                <!-- 仪表盘 -->
+                <li>
+                    <a href="dashboard.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-tachometer-alt text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">仪表盘</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">查看平台概览</div>
+                    </a>
+                </li>
+                
+                <!-- 我的工作流 -->
+                <li>
+                    <a href="workflows.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-project-diagram text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">我的工作流</span>
+                        <span class="hidden md:flex ml-auto bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-1 rounded-full">12</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">管理您的AI工作流</div>
+                    </a>
+                </li>
+                
+                <!-- 工作流市场 -->
+                <li>
+                    <a href="agent_market.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-store text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">工作流市场</span>
+                        <span class="hidden md:flex ml-auto bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">新</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">探索和使用现成的工作流</div>
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- 分类标签：分析 -->
+            <div class="px-4 py-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">分析</span>
+            </div>
+            <ul class="mb-4">
+                <!-- 执行历史 -->
+                <li>
+                    <a href="execution_history.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-history text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">执行历史</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">查看历史执行记录</div>
+                    </a>
+                </li>
+                
+                <!-- 统计分析 -->
+                <li>
+                    <a href="stats.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-chart-bar text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">统计分析</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">查看使用数据和分析</div>
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- 分类标签：系统 -->
+            <div class="px-4 py-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">系统</span>
+            </div>
+            <ul>
+                <!-- 设置 -->
+                <li>
+                    <a href="settings.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-cog text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">设置</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">系统设置和偏好</div>
+                    </a>
+                </li>
+                
+                <!-- 帮助中心 -->
+                <li>
+                    <a href="help.html" class="group relative flex items-center px-4 py-3 text-indigo-600 sidebar-active hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-question-circle text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">帮助中心</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">获取帮助和教程</div>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <!-- 侧边栏底部 - 用户信息 -->
+        <div class="border-t p-4">
+            <a href="profile.html" class="group relative flex items-center text-gray-700 hover:text-indigo-600">
+                <div class="relative">
+                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=40&auto=format&fit=crop" class="w-8 h-8 rounded-full border-2 border-white" alt="用户头像">
+                    <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white"></span>
+                </div>
+                <div class="hidden md:block ml-3">
+                    <p class="text-sm font-medium">张三</p>
+                    <p class="text-xs text-gray-500">查看个人资料</p>
+                </div>
+                <!-- 工具提示 -->
+                <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">管理您的个人资料和设置</div>
+            </a>
+        </div>
+        
+        <!-- 主题开关 -->
+        <div class="border-t p-4 flex items-center justify-center md:justify-between text-gray-700">
+            <span class="hidden md:block text-xs text-gray-500">暗黑模式</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" value="" class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+        </div>
+    </aside>
+
+    <!-- 主要内容区 -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- 顶部导航栏 -->
+        <header class="bg-white shadow-sm z-10">
+            <div class="flex items-center justify-between p-4">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-semibold text-gray-800">帮助中心</h1>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <input type="text" placeholder="搜索帮助文档..." class="pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-64">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    
+                    <button type="button" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-bell text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <!-- 面包屑导航 -->
+        <nav class="flex px-6 py-3" aria-label="Breadcrumb">
+            <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                <li class="inline-flex items-center">
+                    <a href="dashboard.html" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-indigo-600">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+                        </svg>
+                        首页
+                    </a>
+                </li>
+                <li aria-current="page">
+                    <div class="flex items-center">
+                        <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">帮助中心</span>
+                    </div>
+                </li>
+            </ol>
+        </nav>
+
+        <!-- 帮助中心内容 -->
+        <div class="flex-1 overflow-auto p-6">
+            <!-- 帮助中心简介 -->
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-8 rounded-lg mb-8">
+                <div class="max-w-4xl">
+                    <h2 class="text-2xl font-bold mb-2">欢迎来到AI工作流平台帮助中心</h2>
+                    <p class="mb-4">我们提供了全面的文档和教程，帮助您充分利用平台的功能。</p>
+                    <div class="flex flex-wrap gap-4 mt-4">
+                        <a href="#" class="bg-white text-indigo-600 hover:bg-indigo-50 px-4 py-2 rounded-lg font-medium">
+                            <i class="fas fa-book mr-2"></i>浏览文档
+                        </a>
+                        <a href="#" class="bg-indigo-700 hover:bg-indigo-800 text-white px-4 py-2 rounded-lg font-medium">
+                            <i class="fas fa-video mr-2"></i>观看教程
+                        </a>
+                        <a href="#" class="bg-indigo-700 hover:bg-indigo-800 text-white px-4 py-2 rounded-lg font-medium">
+                            <i class="fas fa-headset mr-2"></i>联系支持
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 热门话题 -->
+            <div class="mb-10">
+                <h3 class="text-xl font-semibold text-gray-800 mb-6">热门话题</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- 话题1 -->
+                    <a href="#" class="help-card bg-white p-6 rounded-lg shadow-sm hover:shadow-md">
+                        <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-rocket text-indigo-600 text-xl"></i>
+                        </div>
+                        <h4 class="text-lg font-semibold text-gray-800 mb-2">快速入门指南</h4>
+                        <p class="text-gray-600 mb-4">了解如何快速设置和开始使用AI工作流平台的基本功能。</p>
+                        <span class="text-indigo-600 font-medium">查看指南 <i class="fas fa-arrow-right ml-1"></i></span>
+                    </a>
+                    
+                    <!-- 话题2 -->
+                    <a href="#" class="help-card bg-white p-6 rounded-lg shadow-sm hover:shadow-md">
+                        <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-cogs text-indigo-600 text-xl"></i>
+                        </div>
+                        <h4 class="text-lg font-semibold text-gray-800 mb-2">工作流创建教程</h4>
+                        <p class="text-gray-600 mb-4">详细了解如何创建、配置和优化您的自定义工作流。</p>
+                        <span class="text-indigo-600 font-medium">查看教程 <i class="fas fa-arrow-right ml-1"></i></span>
+                    </a>
+                    
+                    <!-- 话题3 -->
+                    <a href="#" class="help-card bg-white p-6 rounded-lg shadow-sm hover:shadow-md">
+                        <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-chart-line text-indigo-600 text-xl"></i>
+                        </div>
+                        <h4 class="text-lg font-semibold text-gray-800 mb-2">数据分析和报告</h4>
+                        <p class="text-gray-600 mb-4">学习如何使用平台的分析工具来监控和优化您的工作流。</p>
+                        <span class="text-indigo-600 font-medium">查看指南 <i class="fas fa-arrow-right ml-1"></i></span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 文档分类 -->
+            <div class="mb-10">
+                <h3 class="text-xl font-semibold text-gray-800 mb-6">文档分类</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- 分类1 -->
+                    <a href="#" class="bg-white p-4 rounded-lg shadow-sm flex items-center hover:bg-indigo-50">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                            <i class="fas fa-book text-blue-600"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800">基础教程</h4>
+                            <p class="text-sm text-gray-500">平台基本功能的使用指南</p>
+                        </div>
+                        <i class="fas fa-chevron-right ml-auto text-gray-400"></i>
+                    </a>
+                    
+                    <!-- 分类2 -->
+                    <a href="#" class="bg-white p-4 rounded-lg shadow-sm flex items-center hover:bg-indigo-50">
+                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                            <i class="fas fa-graduation-cap text-green-600"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800">高级功能</h4>
+                            <p class="text-sm text-gray-500">深入了解平台的高级特性</p>
+                        </div>
+                        <i class="fas fa-chevron-right ml-auto text-gray-400"></i>
+                    </a>
+                    
+                    <!-- 分类3 -->
+                    <a href="#" class="bg-white p-4 rounded-lg shadow-sm flex items-center hover:bg-indigo-50">
+                        <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-4">
+                            <i class="fas fa-code text-purple-600"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800">API文档</h4>
+                            <p class="text-sm text-gray-500">API接口和集成指南</p>
+                        </div>
+                        <i class="fas fa-chevron-right ml-auto text-gray-400"></i>
+                    </a>
+                    
+                    <!-- 分类4 -->
+                    <a href="#" class="bg-white p-4 rounded-lg shadow-sm flex items-center hover:bg-indigo-50">
+                        <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-4">
+                            <i class="fas fa-bug text-orange-600"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800">故障排除</h4>
+                            <p class="text-sm text-gray-500">常见问题和解决方案</p>
+                        </div>
+                        <i class="fas fa-chevron-right ml-auto text-gray-400"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 最新更新 -->
+            <div class="mb-10">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-semibold text-gray-800">最新更新</h3>
+                    <a href="#" class="text-indigo-600 hover:text-indigo-800 font-medium">查看全部</a>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <ul class="divide-y divide-gray-200">
+                        <li class="hover:bg-gray-50">
+                            <a href="#" class="block p-4">
+                                <div class="flex items-center justify-between mb-1">
+                                    <h4 class="font-medium text-gray-800">工作流编辑器增强功能</h4>
+                                    <span class="text-xs text-gray-500">3天前</span>
+                                </div>
+                                <p class="text-gray-600 text-sm">我们更新了工作流编辑器，添加了更多自定义选项和更好的用户体验。</p>
+                            </a>
+                        </li>
+                        <li class="hover:bg-gray-50">
+                            <a href="#" class="block p-4">
+                                <div class="flex items-center justify-between mb-1">
+                                    <h4 class="font-medium text-gray-800">新增数据分析功能</h4>
+                                    <span class="text-xs text-gray-500">1周前</span>
+                                </div>
+                                <p class="text-gray-600 text-sm">现在您可以利用更强大的数据分析工具来监控和优化您的工作流。</p>
+                            </a>
+                        </li>
+                        <li class="hover:bg-gray-50">
+                            <a href="#" class="block p-4">
+                                <div class="flex items-center justify-between mb-1">
+                                    <h4 class="font-medium text-gray-800">API文档更新</h4>
+                                    <span class="text-xs text-gray-500">2周前</span>
+                                </div>
+                                <p class="text-gray-600 text-sm">我们更新了API文档，新增了多个端点和更详细的使用示例。</p>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- 联系支持 -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <div class="md:flex items-center">
+                    <div class="mb-4 md:mb-0 md:mr-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">需要更多帮助？</h3>
+                        <p class="text-gray-600">如果您在文档中找不到所需的信息，我们的支持团队随时为您提供帮助。</p>
+                    </div>
+                    <div class="flex flex-wrap gap-4 ml-auto">
+                        <a href="#" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium">
+                            <i class="fas fa-ticket-alt mr-2"></i>提交工单
+                        </a>
+                        <a href="#" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium">
+                            <i class="fas fa-comments mr-2"></i>在线客服
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html> 

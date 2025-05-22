@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 工作流平台 - 工作流详情</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f7fa;
+        }
+        .card {
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .tab-active {
+            color: #4f46e5;
+            border-bottom: 2px solid #4f46e5;
+        }
+        .sidebar-active {
+            color: #4f46e5;
+            background-color: #eff6ff;
+            border-radius: 0.5rem;
+        }
+        .badge {
+            padding: 0.125rem 0.5rem;
+            border-radius: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .badge-premium {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .badge-free {
+            background-color: #e0f2fe;
+            color: #0369a1;
+        }
+        .rating-star {
+            color: #facc15;
+        }
+        .sidebar-icon {
+            transition: all 0.2s ease;
+        }
+        .sidebar-icon:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+    <!-- 侧边栏 -->
+    <aside class="w-20 md:w-64 bg-white shadow-md flex flex-col">
+        <!-- 侧边栏头部 - Logo -->
+        <div class="p-4 border-b flex items-center justify-center md:justify-start">
+            <i class="fas fa-robot text-indigo-600 text-2xl mr-2"></i>
+            <span class="hidden md:block text-xl font-bold text-gray-800">AI 工作流平台</span>
+        </div>
+        
+        <!-- 侧边栏导航 -->
+        <nav class="flex-1 overflow-y-auto py-4">
+            <!-- 分类标签：工作台 -->
+            <div class="px-4 py-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">工作台</span>
+            </div>
+            <ul class="mb-4">
+                <!-- 仪表盘 -->
+                <li>
+                    <a href="dashboard.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-tachometer-alt text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">仪表盘</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">查看平台概览</div>
+                    </a>
+                </li>
+                
+                <!-- 工作流 -->
+                <li>
+                    <a href="workflows.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-project-diagram text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">我的工作流</span>
+                        <span class="hidden md:flex ml-auto bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-1 rounded-full">12</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">管理您的AI工作流</div>
+                    </a>
+                </li>
+                
+                <!-- 工作流市场 -->
+                <li>
+                    <a href="agent_market.html" class="group relative flex items-center px-4 py-3 text-indigo-600 sidebar-active hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-store text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">工作流市场</span>
+                        <span class="hidden md:flex ml-auto bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">新</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">探索和使用AI代理</div>
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- 分类标签：分析 -->
+            <div class="px-4 py-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">分析</span>
+            </div>
+            <ul class="mb-4">
+                <!-- 执行历史 -->
+                <li>
+                    <a href="execution_history.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-history text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">执行历史</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">查看历史执行记录</div>
+                    </a>
+                </li>
+                
+                <!-- 统计分析 -->
+                <li>
+                    <a href="stats.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-chart-bar text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">统计分析</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">查看使用数据和分析</div>
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- 分类标签：系统 -->
+            <div class="px-4 py-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">系统</span>
+            </div>
+            <ul>
+                <!-- 设置 -->
+                <li>
+                    <a href="settings.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-cog text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">设置</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">系统设置和偏好</div>
+                    </a>
+                </li>
+                
+                <!-- 帮助中心 -->
+                <li>
+                    <a href="help.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-question-circle text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">帮助中心</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">获取帮助和教程</div>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <!-- 侧边栏底部 - 用户信息 -->
+        <div class="border-t p-4">
+            <a href="profile.html" class="group relative flex items-center text-gray-700 hover:text-indigo-600">
+                <div class="relative">
+                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=40&auto=format&fit=crop" class="w-8 h-8 rounded-full border-2 border-white" alt="用户头像">
+                    <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white"></span>
+                </div>
+                <div class="hidden md:block ml-3">
+                    <p class="text-sm font-medium">张三</p>
+                    <p class="text-xs text-gray-500">查看个人资料</p>
+                </div>
+                <!-- 工具提示 -->
+                <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">管理您的个人资料和设置</div>
+            </a>
+        </div>
+        
+        <!-- 主题开关 -->
+        <div class="border-t p-4 flex items-center justify-center md:justify-between text-gray-700">
+            <span class="hidden md:block text-xs text-gray-500">暗黑模式</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" value="" class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+        </div>
+    </aside>
+
+    <!-- 主要内容区 -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- 顶部导航栏 -->
+        <header class="bg-white shadow-sm z-10">
+            <div class="flex items-center justify-between p-4">
+                <!-- 面包屑导航 -->
+                <div class="flex items-center">
+                    <a href="agent_market.html" class="text-gray-500 hover:text-gray-700">AI代理市场</a>
+                    <i class="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+                    <span class="text-gray-800 font-medium">智能数据分析师</span>
+                </div>
+                
+                <!-- 右侧操作区 -->
+                <div class="flex items-center space-x-4">
+                    <a href="#" class="text-gray-600 hover:text-gray-800 px-3 py-2">
+                        <i class="fas fa-heart"></i>
+                        <span class="ml-1 hidden md:inline">收藏</span>
+                    </a>
+                    
+                    <a href="#" class="text-gray-600 hover:text-gray-800 px-3 py-2">
+                        <i class="fas fa-share-alt"></i>
+                        <span class="ml-1 hidden md:inline">分享</span>
+                    </a>
+                    
+                    <a href="#" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg">
+                        <i class="fas fa-plus mr-1"></i>
+                        <span>添加到工作流</span>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- 内容区域 -->
+        <div class="flex-1 overflow-y-auto p-6">
+            <!-- 代理信息头部 -->
+            <div class="bg-white rounded-lg p-6 mb-6">
+                <div class="flex flex-col md:flex-row">
+                    <!-- 代理图标和基本信息 -->
+                    <div class="flex-shrink-0 mb-4 md:mb-0 md:mr-6">
+                        <div class="w-24 h-24 bg-indigo-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chart-line text-indigo-600 text-4xl"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- 代理详细信息 -->
+                    <div class="flex-1">
+                        <div class="flex items-center flex-wrap gap-2 mb-2">
+                            <h1 class="text-2xl font-bold text-gray-900 mr-2">智能数据分析师</h1>
+                            <span class="badge badge-premium">高级版</span>
+                            <div class="flex items-center ml-2">
+                                <i class="fas fa-star rating-star"></i>
+                                <i class="fas fa-star rating-star"></i>
+                                <i class="fas fa-star rating-star"></i>
+                                <i class="fas fa-star rating-star"></i>
+                                <i class="fas fa-star-half-alt rating-star"></i>
+                                <span class="text-gray-600 text-sm ml-1">(4.5)</span>
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mb-4">一款专业的数据分析AI代理，能够自动处理和分析各种格式的数据，生成详细的分析报告和可视化图表，帮助用户发现数据中的关键趋势和洞察。</p>
+                        
+                        <div class="flex flex-wrap gap-6 text-sm text-gray-600">
+                            <div class="flex items-center">
+                                <i class="fas fa-code text-gray-400 mr-2"></i>
+                                <span>开发者: DataAI科技</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-calendar-alt text-gray-400 mr-2"></i>
+                                <span>发布日期: 2023-03-12</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-refresh text-gray-400 mr-2"></i>
+                                <span>最后更新: 2023-05-28</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-download text-gray-400 mr-2"></i>
+                                <span>使用量: 12,345</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 代理价格信息 -->
+                    <div class="md:ml-6 mt-4 md:mt-0 flex flex-col items-start md:items-end">
+                        <div class="mb-2">
+                            <div class="text-3xl font-bold text-gray-900">¥199<span class="text-sm font-normal text-gray-600">/月</span></div>
+                            <div class="text-sm text-gray-600 line-through">¥259/月</div>
+                        </div>
+                        
+                        <div class="flex flex-col gap-2 w-full md:w-auto">
+                            <a href="#" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-center">
+                                <span>免费试用14天</span>
+                            </a>
+                            <a href="#" class="border border-indigo-600 text-indigo-600 hover:bg-indigo-50 px-6 py-2 rounded-lg text-center">
+                                <span>查看演示</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 选项卡菜单 -->
+            <div class="bg-white rounded-lg mb-6 overflow-hidden">
+                <div class="border-b">
+                    <div class="flex">
+                        <button class="px-6 py-4 font-medium text-gray-800 tab-active" data-tab="overview">概览</button>
+                        <button class="px-6 py-4 font-medium text-gray-500 hover:text-gray-800" data-tab="features">功能与参数</button>
+                        <button class="px-6 py-4 font-medium text-gray-500 hover:text-gray-800" data-tab="usage">使用方法</button>
+                        <button class="px-6 py-4 font-medium text-gray-500 hover:text-gray-800" data-tab="reviews">评价 (125)</button>
+                    </div>
+                </div>
+                
+                <!-- 选项卡内容 - 概览 -->
+                <div class="p-6" id="tab-overview">
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">代理简介</h3>
+                        <p class="text-gray-600 mb-4">智能数据分析师是一款专为数据分析设计的高级AI代理，它能够处理各种格式的数据（CSV、Excel、JSON等），执行复杂的数据清洗、转换和分析操作，并生成详细的报告和可视化图表。</p>
+                        <p class="text-gray-600 mb-4">无论您是数据分析师、业务经理还是数据科学家，这款代理都能帮助您更快速地从数据中发现有价值的洞察，节省大量手动分析的时间。</p>
+                        
+                        <!-- 特点列表 -->
+                        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 mt-1">
+                                    <i class="fas fa-check-circle text-green-500"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <h4 class="text-base font-medium text-gray-900">高级数据处理</h4>
+                                    <p class="mt-1 text-sm text-gray-600">自动处理缺失值、异常检测和数据规范化</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 mt-1">
+                                    <i class="fas fa-check-circle text-green-500"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <h4 class="text-base font-medium text-gray-900">智能数据可视化</h4>
+                                    <p class="mt-1 text-sm text-gray-600">生成最适合您数据的图表和可视化展示</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 mt-1">
+                                    <i class="fas fa-check-circle text-green-500"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <h4 class="text-base font-medium text-gray-900">预测分析能力</h4>
+                                    <p class="mt-1 text-sm text-gray-600">使用机器学习模型预测未来趋势和模式</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 mt-1">
+                                    <i class="fas fa-check-circle text-green-500"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <h4 class="text-base font-medium text-gray-900">自动报告生成</h4>
+                                    <p class="mt-1 text-sm text-gray-600">生成专业的PDF和PowerPoint格式分析报告</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 使用场景 -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">使用场景</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- 场景1 -->
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                                    <i class="fas fa-chart-pie text-blue-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900 mb-2">商业数据分析</h4>
+                                <p class="text-sm text-gray-600">分析销售数据，客户行为和市场趋势，帮助企业做出更明智的商业决策。</p>
+                            </div>
+                            
+                            <!-- 场景2 -->
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mb-4">
+                                    <i class="fas fa-search-dollar text-purple-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900 mb-2">财务报表分析</h4>
+                                <p class="text-sm text-gray-600">自动处理财务数据，生成财务分析报告，识别成本节约机会和盈利点。</p>
+                            </div>
+                            
+                            <!-- 场景3 -->
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                                    <i class="fas fa-flask text-green-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900 mb-2">科研数据处理</h4>
+                                <p class="text-sm text-gray-600">处理实验数据，执行统计分析，生成可用于学术论文的图表和报告。</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 常见问题 -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">常见问题</h3>
+                        
+                        <div class="space-y-4">
+                            <!-- 问题1 -->
+                            <div class="border-b border-gray-200 pb-4">
+                                <button class="flex justify-between items-center w-full text-left">
+                                    <span class="text-base font-medium text-gray-900">这个AI代理支持哪些数据格式？</span>
+                                    <i class="fas fa-chevron-down text-gray-500"></i>
+                                </button>
+                                <div class="mt-2">
+                                    <p class="text-gray-600">智能数据分析师支持多种常见数据格式，包括但不限于CSV、Excel (.xlsx, .xls)、JSON、XML、SQL数据库导出、Google Sheets以及各种统计软件的数据格式如SPSS、SAS和Stata。</p>
+                                </div>
+                            </div>
+                            
+                            <!-- 问题2 -->
+                            <div class="border-b border-gray-200 pb-4">
+                                <button class="flex justify-between items-center w-full text-left">
+                                    <span class="text-base font-medium text-gray-900">如何将此代理集成到我自己的工作流程中？</span>
+                                    <i class="fas fa-chevron-down text-gray-500"></i>
+                                </button>
+                                <div class="mt-2">
+                                    <p class="text-gray-600">您可以通过平台提供的API或集成工具轻松将智能数据分析师集成到您现有的工作流中。我们提供了详细的开发文档和示例代码，帮助您快速实现集成。此外，您也可以在平台的工作流编辑器中直接添加此代理作为一个处理节点。</p>
+                                </div>
+                            </div>
+                            
+                            <!-- 问题3 -->
+                            <div class="border-b border-gray-200 pb-4">
+                                <button class="flex justify-between items-center w-full text-left">
+                                    <span class="text-base font-medium text-gray-900">数据安全性如何保障？</span>
+                                    <i class="fas fa-chevron-down text-gray-500"></i>
+                                </button>
+                                <div class="mt-2">
+                                    <p class="text-gray-600">我们非常重视数据安全。所有上传的数据都经过端到端加密，并且仅在分析过程中临时存储。我们遵循严格的数据保护协议，包括GDPR和CCPA合规标准。您也可以选择在您自己的私有云或本地环境中部署此代理，以满足特殊的数据安全要求。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 其他选项卡内容会通过JavaScript动态显示 -->
+            </div>
+            
+            <!-- 相关代理推荐 -->
+            <div class="bg-white rounded-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">相关代理推荐</h3>
+                    <a href="#" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">查看更多</a>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- 相关代理1 -->
+                    <div class="border rounded-lg p-4 hover:shadow-md transition">
+                        <div class="flex items-start mb-3">
+                            <div class="w-10 h-10 rounded bg-green-100 flex items-center justify-center mr-3">
+                                <i class="fas fa-file-excel text-green-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">Excel数据助手</h4>
+                                <div class="flex items-center mt-1">
+                                    <span class="badge badge-free">免费版</span>
+                                    <div class="flex items-center ml-2">
+                                        <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                        <span class="text-xs text-gray-600 ml-1">4.2</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3">专门处理Excel文件的AI代理，提供数据清洗、公式生成和基础分析功能。</p>
+                        <a href="#" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">查看详情</a>
+                    </div>
+                    
+                    <!-- 相关代理2 -->
+                    <div class="border rounded-lg p-4 hover:shadow-md transition">
+                        <div class="flex items-start mb-3">
+                            <div class="w-10 h-10 rounded bg-amber-100 flex items-center justify-center mr-3">
+                                <i class="fas fa-chart-bar text-amber-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">可视化图表生成器</h4>
+                                <div class="flex items-center mt-1">
+                                    <span class="badge badge-premium">高级版</span>
+                                    <div class="flex items-center ml-2">
+                                        <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                        <span class="text-xs text-gray-600 ml-1">4.7</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3">根据数据自动创建专业级图表和数据可视化，支持多种图表类型和自定义样式。</p>
+                        <a href="#" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">查看详情</a>
+                    </div>
+                    
+                    <!-- 相关代理3 -->
+                    <div class="border rounded-lg p-4 hover:shadow-md transition">
+                        <div class="flex items-start mb-3">
+                            <div class="w-10 h-10 rounded bg-blue-100 flex items-center justify-center mr-3">
+                                <i class="fas fa-robot text-blue-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">AI报告撰写助手</h4>
+                                <div class="flex items-center mt-1">
+                                    <span class="badge badge-premium">高级版</span>
+                                    <div class="flex items-center ml-2">
+                                        <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                        <span class="text-xs text-gray-600 ml-1">4.6</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3">基于数据分析结果，自动撰写专业的分析报告，支持多种语言和行业格式。</p>
+                        <a href="#" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">查看详情</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 选项卡切换脚本
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabButtons = document.querySelectorAll('[data-tab]');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // 移除所有选项卡的active状态
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('tab-active');
+                        btn.classList.add('text-gray-500');
+                    });
+                    
+                    // 添加点击选项卡的active状态
+                    this.classList.add('tab-active');
+                    this.classList.remove('text-gray-500');
+                    
+                    // 这里可以添加切换选项卡内容的功能
+                    // 为简化起见，这个示例只实现了按钮样式切换
+                });
+            });
+        });
+    </script>
+</body>
+</html>

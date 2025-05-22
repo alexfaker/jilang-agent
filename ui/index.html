@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 工作流平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f7fa;
+        }
+        .module-card {
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+        .module-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+        }
+        .navbar-shadow {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="bg-white navbar-shadow sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <i class="fas fa-robot text-indigo-600 text-2xl mr-2"></i>
+                        <span class="text-xl font-bold text-gray-800">AI 工作流平台</span>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <a href="login.html" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">登录</a>
+                    <a href="register.html" class="ml-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">注册</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 欢迎横幅 -->
+    <div class="bg-indigo-700 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+            <div class="md:flex md:items-center md:justify-between">
+                <div class="md:w-3/5">
+                    <h1 class="text-3xl md:text-4xl font-bold mb-4">构建、部署和管理智能AI工作流</h1>
+                    <p class="text-indigo-100 text-lg mb-6">创建自定义工作流，轻松整合AI能力到您的业务中，提升效率，简化流程</p>
+                    <div class="flex flex-wrap gap-4">
+                        <a href="register.html" class="px-6 py-3 bg-white text-indigo-700 font-medium rounded-lg hover:bg-indigo-50">开始使用</a>
+                        <a href="#features" class="px-6 py-3 bg-transparent border border-white text-white font-medium rounded-lg hover:bg-indigo-600">了解更多</a>
+                    </div>
+                </div>
+                <div class="mt-8 md:mt-0 md:w-2/5">
+                    <img src="https://images.unsplash.com/photo-1677442135968-6ab7d1e97cb8?q=80&w=500&auto=format&fit=crop" alt="AI机器人" class="w-full rounded-lg shadow-xl">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要功能模块 -->
+    <div id="features" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <h2 class="text-2xl font-bold text-gray-900 text-center mb-12">主要功能</h2>
+        
+        <!-- 第一行：工作流和工作流市场 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            <!-- 我的工作流 -->
+            <div class="module-card bg-white p-6 overflow-hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">我的工作流</h3>
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                        <i class="fas fa-project-diagram text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+                <p class="text-gray-600 mb-5">创建和管理您的自定义工作流，连接多个组件完成复杂任务</p>
+                <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=500&auto=format&fit=crop" alt="工作流示例" class="w-full h-48 object-cover rounded-lg mb-5">
+                <a href="workflows.html" class="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">查看我的工作流</a>
+            </div>
+            
+            <!-- 工作流市场 -->
+            <div class="module-card bg-white p-6 overflow-hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">工作流市场</h3>
+                    <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                        <i class="fas fa-store text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+                <p class="text-gray-600 mb-5">浏览和使用预构建的工作流，立即添加智能功能到您的应用中</p>
+                <img src="https://images.unsplash.com/photo-1655720031554-a929595ffad7?q=80&w=500&auto=format&fit=crop" alt="工作流市场" class="w-full h-48 object-cover rounded-lg mb-5">
+                <a href="agent_market.html" class="inline-block px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">浏览工作流</a>
+            </div>
+        </div>
+        
+        <!-- 第二行：执行历史和统计分析 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            <!-- 执行历史 -->
+            <div class="module-card bg-white p-6 overflow-hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">执行历史</h3>
+                    <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                        <i class="fas fa-history text-green-600 text-xl"></i>
+                    </div>
+                </div>
+                <p class="text-gray-600 mb-5">查看您的工作流执行历史记录，了解处理结果和性能</p>
+                <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=500&auto=format&fit=crop" alt="执行历史" class="w-full h-48 object-cover rounded-lg mb-5">
+                <a href="execution_history.html" class="inline-block px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">查看执行历史</a>
+            </div>
+            
+            <!-- 统计分析 -->
+            <div class="module-card bg-white p-6 overflow-hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">统计分析</h3>
+                    <div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                        <i class="fas fa-chart-bar text-amber-600 text-xl"></i>
+                    </div>
+                </div>
+                <p class="text-gray-600 mb-5">获取工作流执行的性能指标和统计数据，优化您的工作流</p>
+                <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=500&auto=format&fit=crop" alt="统计分析" class="w-full h-48 object-cover rounded-lg mb-5">
+                <a href="stats.html" class="inline-block px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700">查看统计数据</a>
+            </div>
+        </div>
+        
+        <!-- 第三行：模板库和用户设置 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- 个人中心 -->
+            <div class="module-card bg-white p-6 overflow-hidden md:col-span-2 md:max-w-lg md:mx-auto">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">个人中心</h3>
+                    <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
+                        <i class="fas fa-user text-indigo-600 text-xl"></i>
+                    </div>
+                </div>
+                <p class="text-gray-600 mb-5">管理您的账户设置、API密钥和个人偏好</p>
+                <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=500&auto=format&fit=crop" alt="个人中心" class="w-full h-48 object-cover rounded-lg mb-5">
+                <a href="profile.html" class="inline-block px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">查看个人设置</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部信息 -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">AI 工作流平台</h3>
+                    <p class="text-gray-400">智能工作流平台，让您轻松创建和管理工作流程。</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">功能</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="workflows.html" class="hover:text-white">工作流</a></li>
+                        <li><a href="agent_market.html" class="hover:text-white">工作流市场</a></li>
+                        <li><a href="stats.html" class="hover:text-white">统计分析</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">资源</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white">文档</a></li>
+                        <li><a href="#" class="hover:text-white">API参考</a></li>
+                        <li><a href="#" class="hover:text-white">示例</a></li>
+                        <li><a href="#" class="hover:text-white">教程</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">联系我们</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white">关于我们</a></li>
+                        <li><a href="#" class="hover:text-white">联系方式</a></li>
+                        <li><a href="#" class="hover:text-white">帮助中心</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-400">© 2023 AI 工作流平台. 保留所有权利。</p>
+                <div class="flex space-x-6 mt-4 md:mt-0">
+                    <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-github"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-linkedin"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 简单平滑滚动效果
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

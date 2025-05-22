@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 工作流平台 - 执行工作流</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f7fa;
+        }
+        .card {
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .sidebar-icon {
+            transition: all 0.2s ease;
+        }
+        .sidebar-icon:hover {
+            transform: translateY(-2px);
+        }
+        .sidebar-active {
+            border-left: 3px solid #4f46e5;
+            background-color: #eff6ff;
+            color: #4f46e5;
+        }
+        .badge {
+            padding: 0.125rem 0.5rem;
+            border-radius: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .badge-active {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .step-inactive {
+            color: #9ca3af;
+        }
+        .step-active {
+            color: #4f46e5;
+            font-weight: 600;
+        }
+        .step-completed {
+            color: #10b981;
+        }
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            background-color: #e5e7eb;
+            overflow: hidden;
+        }
+        .progress-value {
+            height: 100%;
+            background-color: #4f46e5;
+            transition: width 0.3s ease;
+        }
+        .status-running {
+            color: #2563eb;
+            background-color: #dbeafe;
+        }
+        .status-success {
+            color: #16a34a;
+            background-color: #dcfce7;
+        }
+        .status-warning {
+            color: #ca8a04;
+            background-color: #fef3c7;
+        }
+        .status-error {
+            color: #dc2626;
+            background-color: #fee2e2;
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+    <!-- 侧边栏 -->
+    <aside class="w-20 md:w-64 bg-white shadow-md flex flex-col">
+        <!-- 侧边栏头部 - Logo -->
+        <div class="p-4 border-b flex items-center justify-center md:justify-start">
+            <i class="fas fa-robot text-indigo-600 text-2xl mr-2"></i>
+            <span class="hidden md:block text-xl font-bold text-gray-800">AI Agent 平台</span>
+        </div>
+        
+        <!-- 侧边栏导航 -->
+        <nav class="flex-1 overflow-y-auto py-4">
+            <!-- 分类标签：工作台 -->
+            <div class="px-4 py-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">工作台</span>
+            </div>
+            <ul class="mb-4">
+                <!-- 仪表盘 -->
+                <li>
+                    <a href="dashboard.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-tachometer-alt text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">仪表盘</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">查看平台概览</div>
+                    </a>
+                </li>
+                
+                <!-- 工作流 -->
+                <li>
+                    <a href="workflows.html" class="group relative flex items-center px-4 py-3 text-indigo-600 sidebar-active hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-project-diagram text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">我的工作流</span>
+                        <span class="hidden md:flex ml-auto bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-1 rounded-full">12</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">管理您的AI工作流</div>
+                    </a>
+                </li>
+                
+                <!-- AI代理市场 -->
+                <li>
+                    <a href="agent_market.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-store text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">AI代理市场</span>
+                        <span class="hidden md:flex ml-auto bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">新</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">探索和使用AI代理</div>
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- 分类标签：分析 -->
+            <div class="px-4 py-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">分析</span>
+            </div>
+            <ul class="mb-4">
+                <!-- 执行历史 -->
+                <li>
+                    <a href="execution_history.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-history text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">执行历史</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">查看历史执行记录</div>
+                    </a>
+                </li>
+                
+                <!-- 统计分析 -->
+                <li>
+                    <a href="stats.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-chart-bar text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">统计分析</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">查看使用数据和分析</div>
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- 分类标签：系统 -->
+            <div class="px-4 py-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">系统</span>
+            </div>
+            <ul>
+                <!-- 设置 -->
+                <li>
+                    <a href="settings.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-cog text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">设置</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">系统设置和偏好</div>
+                    </a>
+                </li>
+                
+                <!-- 帮助中心 -->
+                <li>
+                    <a href="help.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-question-circle text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">帮助中心</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">获取帮助和教程</div>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <!-- 侧边栏底部 - 用户信息 -->
+        <div class="border-t p-4">
+            <a href="profile.html" class="group relative flex items-center text-gray-700 hover:text-indigo-600">
+                <div class="relative">
+                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=40&auto=format&fit=crop" class="w-8 h-8 rounded-full border-2 border-white" alt="用户头像">
+                    <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white"></span>
+                </div>
+                <div class="hidden md:block ml-3">
+                    <p class="text-sm font-medium">张三</p>
+                    <p class="text-xs text-gray-500">查看个人资料</p>
+                </div>
+                <!-- 工具提示 -->
+                <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">管理您的个人资料和设置</div>
+            </a>
+        </div>
+        
+        <!-- 主题开关 -->
+        <div class="border-t p-4 flex items-center justify-center md:justify-between text-gray-700">
+            <span class="hidden md:block text-xs text-gray-500">暗黑模式</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" value="" class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+        </div>
+    </aside>
+
+    <!-- 主要内容区 -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- 顶部导航栏 -->
+        <header class="bg-white shadow-sm z-10">
+            <div class="flex items-center justify-between p-4">
+                <!-- 面包屑导航 -->
+                <div class="flex items-center">
+                    <a href="workflows.html" class="text-gray-500 hover:text-gray-700">工作流</a>
+                    <i class="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+                    <a href="workflow_detail.html" class="text-gray-500 hover:text-gray-700">数据处理自动化</a>
+                    <i class="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+                    <span class="text-gray-800 font-medium">执行工作流</span>
+                </div>
+                
+                <!-- 右侧操作区 -->
+                <div class="flex items-center space-x-4">
+                    <a href="workflow_detail.html" class="text-gray-600 hover:text-gray-800 px-3 py-2">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="ml-1 hidden md:inline">返回</span>
+                    </a>
+                    
+                    <a href="execution_history.html" class="text-gray-600 hover:text-gray-800 px-3 py-2">
+                        <i class="fas fa-history"></i>
+                        <span class="ml-1 hidden md:inline">执行历史</span>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- 内容区域 -->
+        <div class="flex-1 overflow-y-auto p-6">
+            <!-- 执行步骤指示器 -->
+            <div class="bg-white rounded-lg p-6 mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+                    <!-- 步骤指示器 -->
+                    <div class="flex flex-col md:flex-row mb-6 md:mb-0 w-full">
+                        <div class="flex items-center mb-4 md:mb-0">
+                            <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-medium">1</div>
+                            <span class="ml-2 step-completed">配置信息</span>
+                            <div class="hidden md:block w-12 h-1 mx-2 bg-indigo-600"></div>
+                        </div>
+                        
+                        <div class="flex items-center mb-4 md:mb-0">
+                            <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-medium">2</div>
+                            <span class="ml-2 step-active">参数设置</span>
+                            <div class="hidden md:block w-12 h-1 mx-2 bg-gray-300"></div>
+                        </div>
+                        
+                        <div class="flex items-center mb-4 md:mb-0">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-medium">3</div>
+                            <span class="ml-2 step-inactive">执行监控</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 工作流状态 -->
+                    <div class="flex items-center">
+                        <span class="px-3 py-1 rounded-full badge status-running flex items-center">
+                            <i class="fas fa-clock mr-1"></i>
+                            <span>准备执行</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 工作流信息摘要 -->
+            <div class="bg-white rounded-lg p-6 mb-6">
+                <div class="flex items-start">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4 flex-shrink-0">
+                        <i class="fas fa-robot text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between mb-4">
+                            <div>
+                                <h2 class="text-2xl font-semibold text-gray-800">数据处理自动化</h2>
+                                <div class="flex items-center mt-1">
+                                    <span class="badge badge-active">活跃</span>
+                                    <span class="text-sm text-gray-500 ml-2">版本: v1.2.0</span>
+                                </div>
+                            </div>
+                            <div class="mt-2 md:mt-0">
+                                <span class="text-sm text-gray-600">上次执行: 今天 14:30</span>
+                            </div>
+                        </div>
+                        
+                        <p class="text-gray-600 mb-4">自动处理CSV数据并生成分析报告，定期发送至指定邮箱。</p>
+                        
+                        <div class="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                            <div class="flex items-center">
+                                <i class="fas fa-code-branch mr-1 text-gray-400"></i>
+                                <span>3个AI代理</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-clock mr-1 text-gray-400"></i>
+                                <span>平均执行时间: 2分30秒</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-check-circle mr-1 text-gray-400"></i>
+                                <span>成功率: 98%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 执行配置表单 -->
+            <div class="bg-white rounded-lg overflow-hidden">
+                <div class="border-b border-gray-200">
+                    <nav class="flex">
+                        <button class="px-6 py-4 text-sm font-medium text-indigo-600 border-b-2 border-indigo-600 focus:outline-none">
+                            参数配置
+                        </button>
+                        <button class="px-6 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none">
+                            高级选项
+                        </button>
+                    </nav>
+                </div>
+                
+                <div class="p-6">
+                    <form>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">基本参数设置</h3>
+                        
+                        <!-- 参数组：数据源 -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">数据源选择</label>
+                            <div class="space-y-4">
+                                <div class="flex items-start">
+                                    <div class="flex items-center h-5">
+                                        <input id="data_source_upload" name="data_source" type="radio" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded" checked>
+                                    </div>
+                                    <div class="ml-3 text-sm">
+                                        <label for="data_source_upload" class="font-medium text-gray-700">上传文件</label>
+                                        <p class="text-gray-500">上传一个CSV或Excel文件进行处理</p>
+                                        <div class="mt-2 flex items-center">
+                                            <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none">
+                                                <span>选择文件</span>
+                                                <input id="file-upload" name="file-upload" type="file" class="sr-only">
+                                            </label>
+                                            <p class="pl-1 text-gray-500">或拖放到此处</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-start">
+                                    <div class="flex items-center h-5">
+                                        <input id="data_source_api" name="data_source" type="radio" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                                    </div>
+                                    <div class="ml-3 text-sm">
+                                        <label for="data_source_api" class="font-medium text-gray-700">API数据源</label>
+                                        <p class="text-gray-500">从API端点获取数据</p>
+                                        <div class="mt-2">
+                                            <input type="text" name="api_url" placeholder="https://api.example.com/data" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 参数组：处理选项 -->
+                        <div class="mb-6">
+                            <h4 class="text-md font-medium text-gray-800 mb-3">处理选项</h4>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="process_columns" class="block text-sm font-medium text-gray-700 mb-1">处理列</label>
+                                    <select id="process_columns" name="process_columns" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                                        <option>全部列</option>
+                                        <option>选择特定列</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label for="analysis_type" class="block text-sm font-medium text-gray-700 mb-1">分析类型</label>
+                                    <select id="analysis_type" name="analysis_type" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                                        <option>基础统计分析</option>
+                                        <option>趋势分析</option>
+                                        <option>聚类分析</option>
+                                        <option>自定义</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 参数组：输出选项 -->
+                        <div class="mb-6">
+                            <h4 class="text-md font-medium text-gray-800 mb-3">输出选项</h4>
+                            
+                            <div class="space-y-4">
+                                <div class="flex items-center">
+                                    <input id="report_pdf" name="report_format" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded" checked>
+                                    <label for="report_pdf" class="ml-2 block text-sm text-gray-700">生成PDF报告</label>
+                                </div>
+                                
+                                <div class="flex items-center">
+                                    <input id="report_excel" name="report_excel" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                                    <label for="report_excel" class="ml-2 block text-sm text-gray-700">导出处理后的Excel文件</label>
+                                </div>
+                                
+                                <div class="flex items-center">
+                                    <input id="send_email" name="send_email" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded" checked>
+                                    <label for="send_email" class="ml-2 block text-sm text-gray-700">发送邮件通知</label>
+                                </div>
+                                
+                                <div>
+                                    <label for="email_recipients" class="block text-sm font-medium text-gray-700 mb-1">邮件收件人</label>
+                                    <input type="text" name="email_recipients" id="email_recipients" value="user@example.com" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                                    <p class="mt-1 text-sm text-gray-500">多个邮箱请使用逗号分隔</p>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="bg-gray-50 px-6 py-4 flex justify-between items-center">
+                    <button type="button" class="text-gray-700 bg-white hover:bg-gray-50 focus:outline-none px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium">
+                        保存为模板
+                    </button>
+                    
+                    <div class="flex space-x-3">
+                        <button type="button" class="text-gray-700 bg-white hover:bg-gray-50 focus:outline-none px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium">
+                            取消
+                        </button>
+                        <a href="workflow_execution_status.html" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm py-2 px-4 rounded-lg font-medium inline-flex items-center">
+                            <i class="fas fa-play mr-2"></i>
+                            执行工作流
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+<script>
+    // 数据源选择切换逻辑
+    const dataSourceUpload = document.getElementById('data_source_upload');
+    const dataSourceApi = document.getElementById('data_source_api');
+    const apiUrlInput = document.querySelector('input[name="api_url"]');
+    
+    // API URL输入框禁用/启用逻辑
+    function toggleApiUrlInput() {
+        apiUrlInput.disabled = dataSourceUpload.checked;
+        if (dataSourceUpload.checked) {
+            apiUrlInput.classList.add('bg-gray-100');
+        } else {
+            apiUrlInput.classList.remove('bg-gray-100');
+        }
+    }
+    
+    // 初始化时设置状态
+    toggleApiUrlInput();
+    
+    // 添加事件监听器
+    dataSourceUpload.addEventListener('change', toggleApiUrlInput);
+    dataSourceApi.addEventListener('change', toggleApiUrlInput);
+    
+    // 邮件通知控制
+    const sendEmail = document.getElementById('send_email');
+    const emailRecipients = document.getElementById('email_recipients');
+    
+    function toggleEmailRecipients() {
+        emailRecipients.disabled = !sendEmail.checked;
+        if (!sendEmail.checked) {
+            emailRecipients.classList.add('bg-gray-100');
+        } else {
+            emailRecipients.classList.remove('bg-gray-100');
+        }
+    }
+    
+    // 初始化邮件设置
+    toggleEmailRecipients();
+    
+    // 添加邮件事件监听器
+    sendEmail.addEventListener('change', toggleEmailRecipients);
+    
+    // 表单验证
+    const executeBtn = document.querySelector('a[href="workflow_execution_status.html"]');
+    
+    executeBtn.addEventListener('click', function(e) {
+        // 简单验证示例
+        if (dataSourceApi.checked && (!apiUrlInput.value || !apiUrlInput.value.startsWith('http'))) {
+            e.preventDefault();
+            alert('请输入有效的API URL');
+            apiUrlInput.focus();
+            return false;
+        }
+        
+        if (sendEmail.checked && !emailRecipients.value.includes('@')) {
+            e.preventDefault();
+            alert('请输入有效的邮箱地址');
+            emailRecipients.focus();
+            return false;
+        }
+        
+        // 如果验证通过，可以添加一个提交中的视觉反馈
+        executeBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>处理中...';
+        executeBtn.classList.add('opacity-75');
+    });
+</script>
+</html> 

@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data:">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>AI 工作流平台 - 充值资源点数</title>
+    <!-- 将Tailwind CSS放回头部，使用preload策略 -->
+    <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
+    <script src="https://cdn.tailwindcss.com" defer></script>
+    <!-- 提供字体图标的备用加载方式 -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 添加内联样式作为备份 -->
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+        .card {
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            background-color: white;
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+        }
+        .sidebar-icon {
+            transition: all 0.2s ease;
+        }
+        .sidebar-icon:hover {
+            transform: translateY(-2px);
+        }
+        .sidebar-active {
+            background-color: #eff6ff;
+            color: #4f46e5;
+            border-radius: 0.5rem;
+        }
+        .payment-method {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+        }
+        .payment-method:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .payment-method.active {
+            border-color: #4f46e5;
+            background-color: #eff6ff;
+        }
+        .package-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .package-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+        }
+        .package-card.selected {
+            border-color: #4f46e5;
+            background-color: #eff6ff;
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        aside {
+            width: 250px;
+            background-color: white;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        header {
+            background-color: white;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            padding: 1rem;
+        }
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+        /* Tailwind核心类的内联备份 */
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .flex-1 { flex: 1; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .justify-center { justify-content: center; }
+        .overflow-hidden { overflow: hidden; }
+        .overflow-y-auto { overflow-y: auto; }
+        .h-screen { height: 100vh; }
+        .w-full { width: 100%; }
+        .p-4 { padding: 1rem; }
+        .p-6 { padding: 1.5rem; }
+        .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+        .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+        .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+        .px-8 { padding-left: 2rem; padding-right: 2rem; }
+        .mt-1 { margin-top: 0.25rem; }
+        .mt-2 { margin-top: 0.5rem; }
+        .mt-3 { margin-top: 0.75rem; }
+        .mt-6 { margin-top: 1.5rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .ml-1 { margin-left: 0.25rem; }
+        .ml-2 { margin-left: 0.5rem; }
+        .ml-3 { margin-left: 0.75rem; }
+        .mr-1 { margin-right: 0.25rem; }
+        .mr-2 { margin-right: 0.5rem; }
+        .mr-3 { margin-right: 0.75rem; }
+        .space-x-2 > * + * { margin-left: 0.5rem; }
+        .space-x-4 > * + * { margin-left: 1rem; }
+        .space-y-5 > * + * { margin-top: 1.25rem; }
+        .grid { display: grid; }
+        .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+        .gap-4 { gap: 1rem; }
+        .gap-6 { gap: 1.5rem; }
+        .rounded-lg { border-radius: 0.5rem; }
+        .rounded-full { border-radius: 9999px; }
+        .border { border-width: 1px; }
+        .border-t { border-top-width: 1px; }
+        .border-b { border-bottom-width: 1px; }
+        .border-l-4 { border-left-width: 4px; }
+        .border-gray-200 { border-color: #e5e7eb; }
+        .border-gray-300 { border-color: #d1d5db; }
+        .border-indigo-600 { border-color: #4f46e5; }
+        .border-blue-500 { border-color: #3b82f6; }
+        .bg-white { background-color: white; }
+        .bg-indigo-50 { background-color: #eef2ff; }
+        .bg-indigo-600 { background-color: #4f46e5; }
+        .bg-blue-50 { background-color: #eff6ff; }
+        .bg-blue-100 { background-color: #dbeafe; }
+        .bg-indigo-100 { background-color: #e0e7ff; }
+        .bg-purple-100 { background-color: #f3e8ff; }
+        .bg-green-100 { background-color: #dcfce7; }
+        .text-xs { font-size: 0.75rem; }
+        .text-sm { font-size: 0.875rem; }
+        .text-lg { font-size: 1.125rem; }
+        .text-xl { font-size: 1.25rem; }
+        .text-2xl { font-size: 1.5rem; }
+        .text-3xl { font-size: 1.875rem; }
+        .font-medium { font-weight: 500; }
+        .font-semibold { font-weight: 600; }
+        .font-bold { font-weight: 700; }
+        .text-white { color: white; }
+        .text-gray-500 { color: #6b7280; }
+        .text-gray-600 { color: #4b5563; }
+        .text-gray-700 { color: #374151; }
+        .text-gray-800 { color: #1f2937; }
+        .text-indigo-600 { color: #4f46e5; }
+        .text-indigo-700 { color: #4338ca; }
+        .text-blue-500 { color: #3b82f6; }
+        .text-blue-600 { color: #2563eb; }
+        .text-blue-700 { color: #1d4ed8; }
+        .text-green-500 { color: #22c55e; }
+        .text-green-600 { color: #16a34a; }
+        .text-red-500 { color: #ef4444; }
+        .text-red-600 { color: #dc2626; }
+        .text-purple-600 { color: #9333ea; }
+        .text-amber-500 { color: #f59e0b; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+        .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .hover\:bg-indigo-50:hover { background-color: #eef2ff; }
+        .hover\:bg-indigo-700:hover { background-color: #4338ca; }
+        .hover\:text-indigo-600:hover { color: #4f46e5; }
+        .hover\:text-indigo-800:hover { color: #3730a3; }
+        .hover\:text-gray-700:hover { color: #374151; }
+        .hover\:text-gray-800:hover { color: #1f2937; }
+        .hover\:underline:hover { text-decoration: underline; }
+        .focus\:outline-none:focus { outline: 2px solid transparent; outline-offset: 2px; }
+        .transition { transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+        .transition-colors { transition-property: background-color, border-color, color, fill, stroke; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+        .hidden { display: none; }
+        .block { display: block; }
+        .inline { display: inline; }
+        .fixed { position: fixed; }
+        .absolute { position: absolute; }
+        .relative { position: relative; }
+        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+        .z-10 { z-index: 10; }
+        .z-50 { z-index: 50; }
+        .transform { transform: translateX(0) translateY(0) rotate(0) skewX(0) skewY(0) scaleX(1) scaleY(1); }
+        .bg-opacity-50 { --tw-bg-opacity: 0.5; }
+        /* 响应式样式 */
+        @media (min-width: 768px) {
+            .md\:flex-row { flex-direction: row; }
+            .md\:items-center { align-items: center; }
+            .md\:justify-start { justify-content: flex-start; }
+            .md\:justify-between { justify-content: space-between; }
+            .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .md\:w-64 { width: 16rem; }
+            .md\:inline { display: inline; }
+            .md\:block { display: block; }
+            .md\:mt-0 { margin-top: 0; }
+        }
+        @media (min-width: 1024px) {
+            .lg\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+    <!-- 页面加载消息 -->
+    <div id="loading-message" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #f0f9ff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999;">
+        页面正在加载中...如果长时间未显示内容，请检查浏览器控制台是否有错误。
+    </div>
+
+    <!-- 侧边栏 -->
+    <aside class="w-20 md:w-64 bg-white shadow-md flex flex-col">
+        <!-- 侧边栏头部 - Logo -->
+        <div class="p-4 border-b flex items-center justify-center md:justify-start">
+            <i class="fas fa-robot text-indigo-600 text-2xl mr-2"></i>
+            <span class="hidden md:block text-xl font-bold text-gray-800">AI 工作流平台</span>
+        </div>
+        
+        <!-- 侧边栏导航 -->
+        <nav class="flex-1 overflow-y-auto py-4">
+            <!-- 分类标签：工作台 -->
+            <div class="px-4 py-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">工作台</span>
+            </div>
+            <ul class="mb-4">
+                <!-- 仪表盘 -->
+                <li>
+                    <a href="dashboard.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-tachometer-alt text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">仪表盘</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">查看平台概览</div>
+                    </a>
+                </li>
+                
+                <!-- 工作流 -->
+                <li>
+                    <a href="workflows.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-project-diagram text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">我的工作流</span>
+                        <span class="hidden md:flex ml-auto bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-1 rounded-full">12</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">管理您的工作流</div>
+                    </a>
+                </li>
+                
+                <!-- 工作流市场 -->
+                <li>
+                    <a href="agent_market.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-store text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">工作流市场</span>
+                        <span class="hidden md:flex ml-auto bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">新</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">探索和使用工作流</div>
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- 分类标签：分析 -->
+            <div class="px-4 py-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">分析</span>
+            </div>
+            <ul class="mb-4">
+                <!-- 执行历史 -->
+                <li>
+                    <a href="execution_history.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-history text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">执行历史</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">查看历史执行记录</div>
+                    </a>
+                </li>
+                
+                <!-- 统计分析 -->
+                <li>
+                    <a href="stats.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-chart-bar text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">统计分析</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">查看使用数据和分析</div>
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- 分类标签：系统 -->
+            <div class="px-4 py-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">系统</span>
+            </div>
+            <ul>
+                <!-- 设置 -->
+                <li>
+                    <a href="settings.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-cog text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">设置</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">系统设置和偏好</div>
+                    </a>
+                </li>
+                
+                <!-- 帮助中心 -->
+                <li>
+                    <a href="help.html" class="group relative flex items-center px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg mx-2 transition-all duration-200">
+                        <i class="fas fa-question-circle text-lg w-6 text-center"></i>
+                        <span class="hidden md:block ml-3">帮助中心</span>
+                        <!-- 工具提示 -->
+                        <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">获取帮助和教程</div>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <!-- 侧边栏底部 - 用户信息 -->
+        <div class="border-t p-4">
+            <a href="profile.html" class="group relative flex items-center text-indigo-600 sidebar-active hover:text-indigo-600">
+                <div class="relative">
+                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=40&auto=format&fit=crop" class="w-8 h-8 rounded-full border-2 border-white" alt="用户头像">
+                    <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white"></span>
+                </div>
+                <div class="hidden md:block ml-3">
+                    <p class="text-sm font-medium">张三</p>
+                    <p class="text-xs text-gray-500">查看个人资料</p>
+                </div>
+                <!-- 工具提示 -->
+                <div class="hidden group-hover:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50">管理您的个人资料和设置</div>
+            </a>
+        </div>
+        
+        <!-- 主题开关 -->
+        <div class="border-t p-4 flex items-center justify-center md:justify-between text-gray-700">
+            <span class="hidden md:block text-xs text-gray-500">暗黑模式</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" value="" class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+        </div>
+    </aside>
+
+    <!-- 主要内容区 -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- 顶部导航栏 -->
+        <header class="bg-white shadow-sm z-10">
+            <div class="flex items-center justify-between p-4">
+                <!-- 面包屑导航 -->
+                <div class="flex items-center">
+                    <a href="profile.html" class="text-gray-500 hover:text-gray-700">个人中心</a>
+                    <i class="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+                    <span class="text-gray-800 font-medium">充值资源点数</span>
+                </div>
+                
+                <!-- 右侧操作区 -->
+                <div class="flex items-center space-x-4">
+                    <!-- 资源点数显示 -->
+                    <div class="bg-indigo-50 text-indigo-700 py-1 px-3 rounded-full flex items-center">
+                        <i class="fas fa-coins mr-2"></i>
+                        <span class="font-medium">2,450</span>
+                    </div>
+                    
+                    <!-- 帮助 -->
+                    <button type="button" class="text-gray-600 hover:text-gray-800 px-3 py-2">
+                        <i class="fas fa-question-circle"></i>
+                        <span class="ml-1 hidden md:inline">帮助</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 充值内容区域 -->
+        <div class="flex-1 overflow-y-auto p-6">
+            <!-- 操作指南 -->
+            <div class="card bg-white p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">充值资源点数</h2>
+                <p class="text-gray-600 mb-4">资源点数可用于执行工作流、购买工作流和解锁高级功能。选择下方套餐进行充值。</p>
+                
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-info-circle text-blue-500"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-blue-700">
+                                当前活动：首次充值满2000点送500点，充值满5000点送2000点。活动截止时间：2023-07-31
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 充值套餐选择 -->
+            <div class="card bg-white p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">选择充值套餐</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- 套餐1 -->
+                    <div class="package-card border border-gray-200 rounded-lg p-6 flex flex-col">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="font-semibold text-lg text-gray-800">基础套餐</h4>
+                            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                <i class="fas fa-coins text-blue-600"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="flex items-center">
+                                <span class="text-3xl font-bold text-gray-800">1,000</span>
+                                <span class="ml-1 text-gray-600">点</span>
+                            </div>
+                            <p class="text-gray-500 text-sm">¥100.00</p>
+                        </div>
+                        
+                        <div class="text-sm text-gray-600 mb-4 flex-grow">
+                            <p>适合初次体验或轻度使用</p>
+                            <p class="mt-2">点数单价：¥0.10/点</p>
+                        </div>
+                        
+                        <button class="w-full py-2 bg-white border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition">
+                            选择
+                        </button>
+                    </div>
+                    
+                    <!-- 套餐2 -->
+                    <div class="package-card border-2 border-indigo-600 rounded-lg p-6 flex flex-col relative selected">
+                        <!-- 推荐标签 -->
+                        <div class="absolute -top-3 -right-3 bg-indigo-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                            推荐
+                        </div>
+                        
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="font-semibold text-lg text-gray-800">标准套餐</h4>
+                            <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                                <i class="fas fa-coins text-indigo-600"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="flex items-center">
+                                <span class="text-3xl font-bold text-gray-800">5,000</span>
+                                <span class="ml-1 text-gray-600">点</span>
+                                <span class="ml-2 text-green-600 text-sm font-semibold">+2,000点赠送</span>
+                            </div>
+                            <p class="text-gray-500 text-sm">¥450.00</p>
+                        </div>
+                        
+                        <div class="text-sm text-gray-600 mb-4 flex-grow">
+                            <p>适合长期使用，享9折优惠</p>
+                            <p class="mt-2">点数单价：¥0.09/点</p>
+                            <p class="mt-2 text-green-600">赠送点数算入后仅¥0.064/点</p>
+                        </div>
+                        
+                        <button class="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                            选择
+                        </button>
+                    </div>
+                    
+                    <!-- 套餐3 -->
+                    <div class="package-card border border-gray-200 rounded-lg p-6 flex flex-col">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="font-semibold text-lg text-gray-800">高级套餐</h4>
+                            <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                                <i class="fas fa-coins text-purple-600"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="flex items-center">
+                                <span class="text-3xl font-bold text-gray-800">10,000</span>
+                                <span class="ml-1 text-gray-600">点</span>
+                                <span class="ml-2 text-green-600 text-sm font-semibold">+4,000点赠送</span>
+                            </div>
+                            <p class="text-gray-500 text-sm">¥800.00</p>
+                        </div>
+                        
+                        <div class="text-sm text-gray-600 mb-4 flex-grow">
+                            <p>适合高强度使用，享8折优惠</p>
+                            <p class="mt-2">点数单价：¥0.08/点</p>
+                            <p class="mt-2 text-green-600">赠送点数算入后仅¥0.057/点</p>
+                        </div>
+                        
+                        <button class="w-full py-2 bg-white border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition">
+                            选择
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="customAmount" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <label for="customAmount" class="ml-2 text-gray-700">自定义充值金额</label>
+                    </div>
+                    
+                    <div class="mt-3 flex items-center" style="display: none;">
+                        <span class="text-gray-600 mr-2">¥</span>
+                        <input type="number" class="border border-gray-300 rounded-lg p-2 w-32" placeholder="输入金额">
+                        <span class="ml-2 text-gray-600">预计可获得 <span class="text-indigo-600 font-semibold">0</span> 点</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 支付方式选择 -->
+            <div class="card bg-white p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">选择支付方式</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- 支付宝 -->
+                    <div class="payment-method border border-gray-200 rounded-lg p-4 flex items-center active">
+                        <div class="w-8 h-8 flex items-center justify-center mr-3">
+                            <i class="fab fa-alipay text-blue-500 text-2xl"></i>
+                        </div>
+                        <span class="font-medium text-gray-800">支付宝</span>
+                        <div class="ml-auto">
+                            <div class="w-5 h-5 rounded-full border-2 border-indigo-600 flex items-center justify-center bg-indigo-600">
+                                <i class="fas fa-check text-white text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 微信支付 -->
+                    <div class="payment-method border border-gray-200 rounded-lg p-4 flex items-center">
+                        <div class="w-8 h-8 flex items-center justify-center mr-3">
+                            <i class="fab fa-weixin text-green-500 text-2xl"></i>
+                        </div>
+                        <span class="font-medium text-gray-800">微信支付</span>
+                        <div class="ml-auto">
+                            <div class="w-5 h-5 rounded-full border-2 border-gray-300"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 银联 -->
+                    <div class="payment-method border border-gray-200 rounded-lg p-4 flex items-center">
+                        <div class="w-8 h-8 flex items-center justify-center mr-3">
+                            <i class="far fa-credit-card text-red-500 text-2xl"></i>
+                        </div>
+                        <span class="font-medium text-gray-800">银联支付</span>
+                        <div class="ml-auto">
+                            <div class="w-5 h-5 rounded-full border-2 border-gray-300"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- PayPal -->
+                    <div class="payment-method border border-gray-200 rounded-lg p-4 flex items-center">
+                        <div class="w-8 h-8 flex items-center justify-center mr-3">
+                            <i class="fab fa-paypal text-blue-700 text-2xl"></i>
+                        </div>
+                        <span class="font-medium text-gray-800">PayPal</span>
+                        <div class="ml-auto">
+                            <div class="w-5 h-5 rounded-full border-2 border-gray-300"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 订单摘要和支付按钮 -->
+            <div class="card bg-white p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">订单摘要</h3>
+                
+                <div class="border-t border-b border-gray-200 py-4 mb-4">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-600">标准套餐</span>
+                        <span class="font-medium">¥450.00</span>
+                    </div>
+                    <div class="flex justify-between text-green-600">
+                        <span>赠送</span>
+                        <span>2,000点</span>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <span class="text-gray-600 text-sm">总计</span>
+                        <span class="block text-2xl font-bold">¥450.00</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-gray-600 text-sm">获得资源点数</span>
+                        <span class="block text-2xl font-bold text-indigo-600">7,000点</span>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                    <div class="text-gray-600 text-sm">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="agreeTerms" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" checked>
+                            <label for="agreeTerms" class="ml-2">我同意<a href="#" class="text-indigo-600 hover:underline">服务条款</a>和<a href="#" class="text-indigo-600 hover:underline">隐私政策</a></label>
+                        </div>
+                        
+                        <div class="flex items-center mt-2">
+                            <input type="checkbox" id="savePayment" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                            <label for="savePayment" class="ml-2">保存支付方式以便下次使用</label>
+                        </div>
+                    </div>
+                    
+                    <button class="bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 font-medium transition-colors">
+                        立即支付
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 充值成功弹窗 (默认隐藏) -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full">
+            <div class="flex justify-center mb-4">
+                <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-check-circle text-green-500 text-3xl"></i>
+                </div>
+            </div>
+            <h3 class="text-xl font-bold text-center mb-2">充值成功</h3>
+            <p class="text-gray-600 text-center mb-6">您已成功充值7,000点资源点数</p>
+            <div class="flex justify-center">
+                <button class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">
+                    返回个人中心
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 页面加载完成后隐藏加载消息
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("页面DOM加载完成");
+            
+            // 检查Tailwind是否正常工作
+            setTimeout(function() {
+                console.log("检查页面渲染");
+                var loadingMessage = document.getElementById('loading-message');
+                if (loadingMessage) {
+                    loadingMessage.style.display = 'none';
+                }
+                
+                // 检查页面元素是否正确渲染
+                var contentElements = document.querySelectorAll('.card');
+                if (contentElements.length === 0) {
+                    // 如果没有找到任何卡片元素，可能是样式未应用
+                    console.warn("可能存在样式加载问题，尝试应用内联样式");
+                    
+                    // 应用一些基本样式确保内容可见
+                    document.querySelectorAll('aside')[0].style.backgroundColor = 'white';
+                    document.querySelectorAll('aside')[0].style.width = '250px';
+                    document.querySelectorAll('main')[0].style.flex = '1';
+                    
+                    var cards = document.querySelectorAll('.card');
+                    for (var i = 0; i < cards.length; i++) {
+                        cards[i].style.backgroundColor = 'white';
+                        cards[i].style.borderRadius = '1rem';
+                        cards[i].style.padding = '1.5rem';
+                        cards[i].style.marginBottom = '1.5rem';
+                        cards[i].style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
+                    }
+                    
+                    if (loadingMessage) {
+                        loadingMessage.innerText = "样式可能未完全加载，但内容应该可见。请尝试在浏览器中打开页面以获得最佳体验。";
+                        loadingMessage.style.display = 'block';
+                        setTimeout(function() {
+                            loadingMessage.style.display = 'none';
+                        }, 5000);
+                    }
+                }
+                
+                // 输出一条消息到控制台，帮助调试
+                console.log("页面应该已正常渲染。如果页面仍然空白，请检查控制台是否有其他错误。");
+            }, 1000); // 给样式应用一点时间
+            
+            // 为Cursor IDE的Live Preview添加特殊处理
+            if (window.location.href.indexOf('vscode-webview') !== -1 || 
+                navigator.userAgent.indexOf('VSCode') !== -1 ||
+                navigator.userAgent.indexOf('Cursor') !== -1) {
+                console.log("检测到IDE环境，应用特殊处理");
+                // 应用强制显示样式
+                document.body.style.display = 'flex';
+                document.body.style.height = '100vh';
+                document.body.style.overflow = 'hidden';
+                document.body.style.margin = '0';
+                document.body.style.padding = '0';
+                document.body.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+                document.body.style.backgroundColor = '#f5f7fa';
+            }
+        });
+        
+        // 添加图标备用机制
+        window.addEventListener('error', function(e) {
+            // 检查是否是字体图标加载错误
+            if (e.target && (e.target.tagName === 'LINK' || e.target.tagName === 'I')) {
+                console.warn('检测到资源加载错误，可能是字体图标未加载：', e.target);
+                
+                // 如果是Font Awesome加载失败，尝试使用文本代替图标
+                if (e.target.tagName === 'I' && e.target.className.indexOf('fa-') !== -1) {
+                    // 根据图标类型提供文本替代
+                    if (e.target.className.indexOf('fa-coins') !== -1) e.target.innerText = '💰';
+                    else if (e.target.className.indexOf('fa-check') !== -1) e.target.innerText = '✓';
+                    else if (e.target.className.indexOf('fa-info') !== -1) e.target.innerText = 'ℹ️';
+                    else if (e.target.className.indexOf('fa-question') !== -1) e.target.innerText = '?';
+                    else if (e.target.className.indexOf('fa-robot') !== -1) e.target.innerText = '🤖';
+                    else if (e.target.className.indexOf('fa-tachometer') !== -1) e.target.innerText = '⚡';
+                    else if (e.target.className.indexOf('fa-project-diagram') !== -1) e.target.innerText = '📊';
+                    else if (e.target.className.indexOf('fa-store') !== -1) e.target.innerText = '🏪';
+                    else if (e.target.className.indexOf('fa-history') !== -1) e.target.innerText = '⏱️';
+                    else if (e.target.className.indexOf('fa-chart') !== -1) e.target.innerText = '📈';
+                    else if (e.target.className.indexOf('fa-copy') !== -1) e.target.innerText = '📋';
+                    else if (e.target.className.indexOf('fa-cog') !== -1) e.target.innerText = '⚙️';
+                    else if (e.target.className.indexOf('fa-chevron') !== -1) e.target.innerText = '›';
+                    else e.target.innerText = '•'; // 默认替代符号
+                }
+            }
+        }, true);
+    </script>
+</body>
+</html> 
