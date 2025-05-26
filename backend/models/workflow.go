@@ -90,12 +90,6 @@ type WorkflowUpdateInput struct {
 	Status      WorkflowStatus  `json:"status" validate:"omitempty,oneof=draft active inactive archived"`
 }
 
-// ExecutionCreateInput 创建执行记录输入
-type ExecutionCreateInput struct {
-	WorkflowID int64           `json:"workflowId" validate:"required"`
-	AgentID    *int64          `json:"agentId"`
-	InputData  json.RawMessage `json:"inputData"`
-}
 
 // CreateWorkflow 创建新工作流
 func CreateWorkflow(db *sql.DB, userID int64, input WorkflowCreateInput) (*Workflow, error) {

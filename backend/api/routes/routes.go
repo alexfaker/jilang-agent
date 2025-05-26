@@ -3,10 +3,10 @@ package routes
 import (
 	"net/http"
 
-	"github.com/alexfaker/jilang-agent/api/handlers"
-	jilangMiddleware "github.com/alexfaker/jilang-agent/api/middleware"
-	"github.com/alexfaker/jilang-agent/config"
-	"github.com/alexfaker/jilang-agent/pkg/database"
+	"github.com/alexfaker/jilang-agent/backend/api/handlers"
+	"github.com/alexfaker/jilang-agent/backend/api/middleware"
+	"github.com/alexfaker/jilang-agent/backend/config"
+	"github.com/alexfaker/jilang-agent/backend/pkg/database"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"

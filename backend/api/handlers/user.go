@@ -102,8 +102,8 @@ func UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, updatedUser)
 }
 
-// ChangePassword 修改用户密码
-func ChangePassword(w http.ResponseWriter, r *http.Request) {
+// ChangePasswordLegacy 修改用户密码（旧版本，未使用）
+func ChangePasswordLegacy(w http.ResponseWriter, r *http.Request) {
 	// 从上下文获取用户ID
 	userID := r.Context().Value("userID").(int64)
 

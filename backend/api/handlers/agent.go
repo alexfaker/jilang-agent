@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/alexfaker/jilang-agent/models"
-	"github.com/alexfaker/jilang-agent/pkg/database"
-	"github.com/alexfaker/jilang-agent/utils"
+	"github.com/alexfaker/jilang-agent/backend/models"
+	"github.com/alexfaker/jilang-agent/backend/pkg/database"
+	"github.com/alexfaker/jilang-agent/backend/utils"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
