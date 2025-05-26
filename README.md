@@ -32,8 +32,9 @@ jilang-agent/
 
 ### 后端
 - Go 1.20+
-- Chi (路由)
-- MySQL / PostgreSQL (数据库)
+- Gin (路由)
+- Gorm (ORM)
+- MySQL(数据库)
 - JWT (认证)
 - Zap (日志)
 

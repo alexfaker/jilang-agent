@@ -38,6 +38,12 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
+        path: 'workflows/:id',
+        name: 'WorkflowDetail',
+        component: () => import('../views/workflows/WorkflowDetail.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
         path: 'agents',
         name: 'Agents',
         component: () => import('../views/agents/AgentList.vue'),
@@ -47,6 +53,12 @@ const routes = [
         path: 'executions',
         name: 'Executions',
         component: () => import('../views/executions/ExecutionList.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'executions/:id',
+        name: 'ExecutionDetail',
+        component: () => import('../views/executions/ExecutionDetail.vue'),
         meta: { requiresAuth: true }
       }
     ]

@@ -11,6 +11,7 @@ import (
 	"github.com/alexfaker/jilang-agent/config"
 	"github.com/alexfaker/jilang-agent/pkg/database"
 	"github.com/alexfaker/jilang-agent/pkg/logger"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -26,16 +27,31 @@ func main() {
 
 	logger.Info("启动AI工作流平台服务...")
 
+	// 设置Gin模式
+	if cfg.Environment == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	} else {
+		gin.SetMode(gin.DebugMode)
+	}
+
 	// 连接数据库
-	db, err := database.ConnectDB(cfg.Database)
+	db, err := database.ConnectGormDB(cfg.Database)
 	if err != nil {
 		logger.Fatalf("数据库连接失败: %v", err)
 	}
-	defer db.Close()
 	logger.Info("数据库连接成功")
 
-	// 初始化路由
-	router := routes.InitRoutes(db, logger, cfg)
+	// 自动迁移模型（可选，生产环境可能需要手动迁移）
+	if cfg.Environment != "production" {
+		if err := db.AutoMigrate(); err != nil {
+			logger.Warnf("数据库自动迁移失败: %v", err)
+		} else {
+			logger.Info("数据库自动迁移成功")
+		}
+	}
+
+	// 初始化Gin路由
+	router := routes.InitGinRoutes(db, logger, cfg)
 
 	// 配置服务器
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)

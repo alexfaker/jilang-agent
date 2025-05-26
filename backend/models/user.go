@@ -7,20 +7,26 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // User 用户模型
 type User struct {
-	ID           int64      `json:"id"`
-	Username     string     `json:"username"`
-	Email        string     `json:"email"`
-	PasswordHash string     `json:"-"` // 不暴露密码哈希
-	FullName     string     `json:"fullName"`
-	Avatar       string     `json:"avatar"`
-	Role         string     `json:"role"`
-	CreatedAt    time.Time  `json:"createdAt"`
-	UpdatedAt    time.Time  `json:"updatedAt"`
-	LastLoginAt  *time.Time `json:"lastLoginAt"`
+	ID           int64      `json:"id" gorm:"primaryKey;autoIncrement"`
+	Username     string     `json:"username" gorm:"type:varchar(50);uniqueIndex;not null"`
+	Email        string     `json:"email" gorm:"type:varchar(100);uniqueIndex;not null"`
+	PasswordHash string     `json:"-" gorm:"column:password_hash;type:varchar(255);not null"` // 不暴露密码哈希
+	FullName     string     `json:"fullName" gorm:"column:full_name;type:varchar(100)"`
+	Avatar       string     `json:"avatar" gorm:"type:varchar(255)"`
+	Role         string     `json:"role" gorm:"type:varchar(20);default:'user'"`
+	CreatedAt    time.Time  `json:"createdAt" gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt    time.Time  `json:"updatedAt" gorm:"column:updated_at;autoUpdateTime"`
+	LastLoginAt  *time.Time `json:"lastLoginAt" gorm:"column:last_login_at"`
+}
+
+// TableName 指定表名
+func (User) TableName() string {
+	return "users"
 }
 
 // UserRegisterInput 用户注册输入
@@ -123,6 +129,49 @@ func CreateUser(db *sql.DB, input UserRegisterInput) (*User, error) {
 	return &user, nil
 }
 
+// CreateUserGorm 使用GORM创建新用户
+func CreateUserGorm(db *gorm.DB, input UserRegisterInput) (*User, error) {
+	// 检查用户名是否已存在
+	var count int64
+	if err := db.Model(&User{}).Where("username = ?", input.Username).Count(&count).Error; err != nil {
+		return nil, fmt.Errorf("检查用户名失败: %w", err)
+	}
+	if count > 0 {
+		return nil, errors.New("用户名已存在")
+	}
+
+	// 检查邮箱是否已存在
+	if err := db.Model(&User{}).Where("email = ?", input.Email).Count(&count).Error; err != nil {
+		return nil, fmt.Errorf("检查邮箱失败: %w", err)
+	}
+	if count > 0 {
+		return nil, errors.New("邮箱已存在")
+	}
+
+	// 生成密码哈希
+	passwordHash, err := HashPassword(input.Password)
+	if err != nil {
+		return nil, fmt.Errorf("密码哈希生成失败: %w", err)
+	}
+
+	// 创建用户对象
+	user := &User{
+		Username:     input.Username,
+		Email:        input.Email,
+		PasswordHash: passwordHash,
+		FullName:     input.FullName,
+		Avatar:       "/static/avatars/default.png",
+		Role:         "user",
+	}
+
+	// 保存到数据库
+	if err := db.Create(user).Error; err != nil {
+		return nil, fmt.Errorf("创建用户失败: %w", err)
+	}
+
+	return user, nil
+}
+
 // GetUserByID 根据ID获取用户
 func GetUserByID(db *sql.DB, id int64) (*User, error) {
 	query := `
@@ -160,6 +209,18 @@ func GetUserByID(db *sql.DB, id int64) (*User, error) {
 	return &user, nil
 }
 
+// GetUserByIDGorm 使用GORM根据ID获取用户
+func GetUserByIDGorm(db *gorm.DB, id int64) (*User, error) {
+	var user User
+	if err := db.First(&user, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("用户不存在")
+		}
+		return nil, fmt.Errorf("获取用户失败: %w", err)
+	}
+	return &user, nil
+}
+
 // GetUserByUsername 根据用户名获取用户
 func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 	query := `
@@ -194,6 +255,18 @@ func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 		user.LastLoginAt = &lastLoginAt.Time
 	}
 
+	return &user, nil
+}
+
+// GetUserByUsernameGorm 使用GORM根据用户名获取用户
+func GetUserByUsernameGorm(db *gorm.DB, username string) (*User, error) {
+	var user User
+	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("用户不存在")
+		}
+		return nil, fmt.Errorf("获取用户失败: %w", err)
+	}
 	return &user, nil
 }
 
@@ -252,6 +325,42 @@ func (u *User) Update(db *sql.DB, input UserUpdateInput) error {
 	return nil
 }
 
+// UpdateGorm 使用GORM更新用户信息
+func (u *User) UpdateGorm(db *gorm.DB, input UserUpdateInput) error {
+	// 检查邮箱是否已被其他用户使用
+	if input.Email != "" && input.Email != u.Email {
+		var count int64
+		if err := db.Model(&User{}).Where("email = ? AND id != ?", input.Email, u.ID).Count(&count).Error; err != nil {
+			return fmt.Errorf("检查邮箱失败: %w", err)
+		}
+		if count > 0 {
+			return errors.New("邮箱已被其他用户使用")
+		}
+	}
+
+	// 准备更新数据
+	updates := map[string]interface{}{}
+	if input.Email != "" {
+		updates["email"] = input.Email
+		u.Email = input.Email
+	}
+	if input.FullName != "" {
+		updates["full_name"] = input.FullName
+		u.FullName = input.FullName
+	}
+	if input.Avatar != "" {
+		updates["avatar"] = input.Avatar
+		u.Avatar = input.Avatar
+	}
+
+	// 更新用户信息
+	if err := db.Model(u).Updates(updates).Error; err != nil {
+		return fmt.Errorf("更新用户失败: %w", err)
+	}
+
+	return nil
+}
+
 // ChangePassword 修改用户密码
 func (u *User) ChangePassword(db *sql.DB, input PasswordChangeInput) error {
 	// 验证当前密码
@@ -289,6 +398,32 @@ func (u *User) ChangePassword(db *sql.DB, input PasswordChangeInput) error {
 	return nil
 }
 
+// ChangePasswordGorm 使用GORM修改用户密码
+func (u *User) ChangePasswordGorm(db *gorm.DB, input PasswordChangeInput) error {
+	// 验证当前密码
+	if !u.CheckPassword(input.CurrentPassword) {
+		return errors.New("当前密码不正确")
+	}
+
+	// 生成新密码哈希
+	newPasswordHash, err := HashPassword(input.NewPassword)
+	if err != nil {
+		return fmt.Errorf("密码哈希生成失败: %w", err)
+	}
+
+	// 更新密码
+	if err := db.Model(u).Updates(map[string]interface{}{
+		"password_hash": newPasswordHash,
+	}).Error; err != nil {
+		return fmt.Errorf("更新密码失败: %w", err)
+	}
+
+	// 更新内存中的密码哈希
+	u.PasswordHash = newPasswordHash
+
+	return nil
+}
+
 // UpdateLastLogin 更新最后登录时间
 func (u *User) UpdateLastLogin(db *sql.DB) error {
 	now := time.Now()
@@ -307,10 +442,13 @@ func (u *User) UpdateLastLogin(db *sql.DB) error {
 	return nil
 }
 
-// 辅助函数：将空字符串转为SQL NULL
-func nullString(s string) interface{} {
-	if s == "" {
-		return nil
+// UpdateLastLoginGorm 使用GORM更新最后登录时间
+func (u *User) UpdateLastLoginGorm(db *gorm.DB) error {
+	now := time.Now()
+	if err := db.Model(u).Update("last_login_at", now).Error; err != nil {
+		return fmt.Errorf("更新最后登录时间失败: %w", err)
 	}
-	return s
+
+	u.LastLoginAt = &now
+	return nil
 }

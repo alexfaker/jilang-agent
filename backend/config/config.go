@@ -19,10 +19,13 @@ type Config struct {
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
-	Host    string        `json:"host"`
-	Port    int           `json:"port"`
-	Timeout TimeoutConfig `json:"timeout"`
-	Cors    CorsConfig    `json:"cors"`
+	Host        string        `json:"host"`
+	Port        int           `json:"port"`
+	Timeout     TimeoutConfig `json:"timeout"`
+	Cors        CorsConfig    `json:"cors"`
+	Secure      bool          `json:"secure"`      // 是否使用HTTPS
+	ServeStatic bool          `json:"serveStatic"` // 是否提供静态文件服务
+	StaticDir   string        `json:"staticDir"`   // 静态文件目录
 }
 
 // TimeoutConfig 服务器超时配置
@@ -42,13 +45,18 @@ type CorsConfig struct {
 
 // DatabaseConfig 数据库配置
 type DatabaseConfig struct {
-	Driver   string `json:"driver"`
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	User     string `json:"user"`
-	Password string `json:"password"`
-	Database string `json:"database"`
-	SSLMode  string `json:"sslMode"`
+	Driver          string `json:"driver"`
+	Host            string `json:"host"`
+	Port            int    `json:"port"`
+	User            string `json:"user"`
+	Password        string `json:"password"`
+	Database        string `json:"database"`
+	SSLMode         string `json:"sslMode"`
+	LogLevel        string `json:"logLevel"`        // 日志级别：silent, error, warn, info
+	MaxOpenConns    int    `json:"maxOpenConns"`    // 最大连接数
+	MaxIdleConns    int    `json:"maxIdleConns"`    // 最大空闲连接数
+	ConnMaxIdleTime int    `json:"connMaxIdleTime"` // 连接最大空闲时间（秒）
+	ConnMaxLifetime int    `json:"connMaxLifetime"` // 连接最大生命周期（秒）
 }
 
 // AuthConfig 认证配置
@@ -169,6 +177,17 @@ func setDefaults(config *Config, env string) {
 	if config.Server.Timeout.Idle == 0 {
 		config.Server.Timeout.Idle = 60
 	}
+	// 开发环境默认不使用HTTPS
+	if env == "development" {
+		config.Server.Secure = false
+	} else {
+		// 生产环境默认使用HTTPS
+		config.Server.Secure = true
+	}
+	// 静态文件服务默认值
+	if config.Server.StaticDir == "" {
+		config.Server.StaticDir = "static"
+	}
 
 	// CORS默认值
 	if len(config.Server.Cors.AllowedMethods) == 0 {
@@ -184,6 +203,22 @@ func setDefaults(config *Config, env string) {
 	}
 	if config.Database.SSLMode == "" {
 		config.Database.SSLMode = "disable"
+	}
+	// 数据库连接池默认值
+	if config.Database.LogLevel == "" {
+		config.Database.LogLevel = "error"
+	}
+	if config.Database.MaxOpenConns == 0 {
+		config.Database.MaxOpenConns = 25
+	}
+	if config.Database.MaxIdleConns == 0 {
+		config.Database.MaxIdleConns = 5
+	}
+	if config.Database.ConnMaxIdleTime == 0 {
+		config.Database.ConnMaxIdleTime = 300 // 5分钟
+	}
+	if config.Database.ConnMaxLifetime == 0 {
+		config.Database.ConnMaxLifetime = 3600 // 1小时
 	}
 
 	// 认证默认值
