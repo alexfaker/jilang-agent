@@ -1,10 +1,10 @@
 import axios from 'axios';
-import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toastification';
 
 // 创建axios实例
-const api = axios.create({
+const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
-  timeout: 30000,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
@@ -12,12 +12,11 @@ const api = axios.create({
 });
 
 // 请求拦截器
-api.interceptors.request.use(
+apiClient.interceptors.request.use(
   config => {
-    // 添加认证令牌到请求头
     const token = localStorage.getItem('token');
     if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -27,169 +26,149 @@ api.interceptors.request.use(
 );
 
 // 响应拦截器
-api.interceptors.response.use(
+apiClient.interceptors.response.use(
   response => {
     return response.data;
   },
   error => {
-    const router = useRouter();
+    const toast = useToast();
+    const { response } = error;
     
-    // 处理401未授权错误
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+    if (response) {
+      // 服务器返回错误信息
+      const { status, data } = response;
       
-      // 如果当前页面不是登录页，重定向到登录页
-      if (router && router.currentRoute.value.name !== 'login') {
-        router.push({
-          name: 'login',
-          query: { redirect: router.currentRoute.value.fullPath }
-        });
+      switch (status) {
+        case 400:
+          toast.error(`请求错误: ${data.message || '参数错误'}`);
+          break;
+        case 401:
+          toast.error('未授权，请重新登录');
+          // 清除token并跳转到登录页
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+          break;
+        case 403:
+          toast.error(`拒绝访问: ${data.message || '权限不足'}`);
+          break;
+        case 404:
+          toast.error(`请求的资源不存在: ${data.message || '未找到'}`);
+          break;
+        case 500:
+          toast.error(`服务器错误: ${data.message || '内部服务器错误'}`);
+          break;
+        default:
+          toast.error(`未知错误: ${data.message || error.message || '请求失败'}`);
+      }
+    } else {
+      // 网络错误或请求被取消
+      if (error.message.includes('timeout')) {
+        toast.error('请求超时，请检查网络连接');
+      } else if (error.message.includes('Network Error')) {
+        toast.error('网络错误，请检查网络连接');
+      } else {
+        toast.error(`请求失败: ${error.message}`);
       }
     }
     
-    // 构建错误消息
-    let errorMessage = '请求失败';
-    if (error.response && error.response.data) {
-      errorMessage = error.response.data.message || errorMessage;
-    } else if (error.message) {
-      errorMessage = error.message;
+    return Promise.reject(error);
+  }
+);
+
+// 创建一个用于文件上传的API客户端实例
+const uploadApiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  timeout: 60000, // 文件上传可能需要更长的超时时间
+  headers: {
+    'Accept': 'application/json'
+    // 不设置Content-Type，让axios自动设置为multipart/form-data
+  }
+});
+
+// 为上传客户端添加请求拦截器
+uploadApiClient.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
+);
+
+// 为上传客户端添加响应拦截器
+uploadApiClient.interceptors.response.use(
+  response => {
+    return response.data;
+  },
+  error => {
+    const toast = useToast();
+    const { response } = error;
+    
+    if (response) {
+      const { status, data } = response;
+      toast.error(`上传失败: ${data.message || '服务器错误'}`);
+    } else {
+      toast.error(`上传失败: ${error.message || '未知错误'}`);
     }
     
-    return Promise.reject({
-      message: errorMessage,
-      status: error.response ? error.response.status : null,
-      data: error.response ? error.response.data : null
-    });
+    return Promise.reject(error);
   }
 );
 
 // 认证相关API
 export const authApi = {
-  // 用户登录
-  login(credentials) {
-    return api.post('/auth/login', credentials);
-  },
-  
-  // 用户注册
-  register(userData) {
-    return api.post('/auth/register', userData);
-  },
-  
-  // 刷新令牌
-  refreshToken() {
-    return api.post('/auth/refresh');
-  },
-  
-  // 退出登录
-  logout() {
-    return api.post('/auth/logout');
-  }
+  login: (credentials) => apiClient.post('/auth/login', credentials),
+  register: (userData) => apiClient.post('/auth/register', userData),
+  logout: () => apiClient.post('/auth/logout'),
+  getProfile: () => apiClient.get('/users/me'),
+  updateProfile: (data) => apiClient.put('/users/me', data),
+  updateProfileWithAvatar: (formData) => uploadApiClient.post('/users/me/avatar', formData),
+  changePassword: (data) => apiClient.put('/users/me/password', data),
+  forgotPassword: (email) => apiClient.post('/auth/forgot-password', { email }),
+  resetPassword: (data) => apiClient.post('/auth/reset-password', data)
 };
 
-// 用户相关API
-export const userApi = {
-  // 获取当前用户信息
-  getCurrentUser() {
-    return api.get('/users/profile');
-  },
-  
-  // 更新用户信息
-  updateProfile(data) {
-    return api.put('/users/profile', data);
-  },
-  
-  // 修改密码
-  changePassword(data) {
-    return api.post('/users/change-password', data);
-  }
+// 设置相关API
+export const settingsApi = {
+  getSettings: () => apiClient.get('/settings'),
+  updateSettings: (settings) => apiClient.put('/settings', settings),
+  getSecuritySettings: () => apiClient.get('/settings/security'),
+  generateApiKey: (description) => apiClient.post('/settings/api-keys', { description }),
+  revokeApiKey: (keyId) => apiClient.delete(`/settings/api-keys/${keyId}`),
+  getApiKeys: () => apiClient.get('/settings/api-keys'),
+  getSessions: () => apiClient.get('/settings/sessions'),
+  terminateSession: (sessionId) => apiClient.delete(`/settings/sessions/${sessionId}`)
 };
 
 // 工作流相关API
 export const workflowApi = {
-  // 获取工作流列表
-  getWorkflows(params) {
-    return api.get('/workflows', { params });
-  },
-  
-  // 获取单个工作流
-  getWorkflow(id) {
-    return api.get(`/workflows/${id}`);
-  },
-  
-  // 创建工作流
-  createWorkflow(data) {
-    return api.post('/workflows', data);
-  },
-  
-  // 更新工作流
-  updateWorkflow(id, data) {
-    return api.put(`/workflows/${id}`, data);
-  },
-  
-  // 删除工作流
-  deleteWorkflow(id) {
-    return api.delete(`/workflows/${id}`);
-  },
-  
-  // 执行工作流
-  executeWorkflow(id, data) {
-    return api.post(`/workflows/${id}/execute`, data);
-  }
+  getWorkflows: (params) => apiClient.get('/workflows', { params }),
+  getWorkflow: (id) => apiClient.get(`/workflows/${id}`),
+  createWorkflow: (workflow) => apiClient.post('/workflows', workflow),
+  updateWorkflow: (id, workflow) => apiClient.put(`/workflows/${id}`, workflow),
+  deleteWorkflow: (id) => apiClient.delete(`/workflows/${id}`),
+  executeWorkflow: (id, params) => apiClient.post(`/workflows/${id}/execute`, params)
 };
 
 // 执行历史相关API
 export const executionApi = {
-  // 获取执行历史列表
-  getExecutions(params) {
-    return api.get('/executions', { params });
-  },
-  
-  // 获取单个执行记录
-  getExecution(id) {
-    return api.get(`/executions/${id}`);
-  }
+  getExecutions: (params) => apiClient.get('/executions', { params }),
+  getExecution: (id) => apiClient.get(`/executions/${id}`),
+  cancelExecution: (id) => apiClient.post(`/executions/${id}/cancel`)
 };
 
 // 代理相关API
 export const agentApi = {
-  // 获取代理列表
-  getAgents(params) {
-    return api.get('/agents', { params });
-  },
-  
-  // 获取单个代理
-  getAgent(id) {
-    return api.get(`/agents/${id}`);
-  },
-  
-  // 获取代理分类
-  getAgentCategories() {
-    return api.get('/agents/categories');
-  },
-  
-  // 创建代理
-  createAgent(data) {
-    return api.post('/agents', data);
-  },
-  
-  // 更新代理
-  updateAgent(id, data) {
-    return api.put(`/agents/${id}`, data);
-  },
-  
-  // 删除代理
-  deleteAgent(id) {
-    return api.delete(`/agents/${id}`);
-  }
+  getAgents: (params) => apiClient.get('/agents', { params }),
+  getAgent: (id) => apiClient.get(`/agents/${id}`),
+  createAgent: (agent) => apiClient.post('/agents', agent),
+  updateAgent: (id, agent) => apiClient.put(`/agents/${id}`, agent),
+  deleteAgent: (id) => apiClient.delete(`/agents/${id}`),
+  testAgent: (id) => apiClient.post(`/agents/${id}/test`)
 };
 
-// 统计数据相关API
-export const statsApi = {
-  // 获取仪表盘统计数据
-  getDashboardStats() {
-    return api.get('/stats/dashboard');
-  }
-};
-
-export default api; 
+export default apiClient; 

@@ -6,11 +6,11 @@
         <p class="login-subtitle">登录您的账户</p>
       </div>
       
-      <div v-if="error" class="alert alert-danger">
-        {{ error }}
+      <div v-if="userStore.error" class="alert alert-danger">
+        {{ userStore.error }}
       </div>
       
-      <form @submit.prevent="login" class="login-form">
+      <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
           <label for="username">用户名</label>
           <input 
@@ -69,10 +69,10 @@
         <button 
           type="submit" 
           class="btn btn-primary login-btn" 
-          :disabled="loading"
+          :disabled="userStore.loading"
         >
-          <span v-if="loading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-          {{ loading ? '登录中...' : '登录' }}
+          <span v-if="userStore.loading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          {{ userStore.loading ? '登录中...' : '登录' }}
         </button>
       </form>
       
@@ -85,84 +85,66 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'LoginView',
-  data() {
-    return {
-      credentials: {
-        username: '',
-        password: '',
-        remember: false
-      },
-      validationErrors: {},
-      error: null,
-      loading: false,
-      showPassword: false
-    }
-  },
-  methods: {
-    validateForm() {
-      this.validationErrors = {};
-      let isValid = true;
-      
-      if (!this.credentials.username.trim()) {
-        this.validationErrors.username = '用户名不能为空';
-        isValid = false;
-      }
-      
-      if (!this.credentials.password) {
-        this.validationErrors.password = '密码不能为空';
-        isValid = false;
-      } else if (this.credentials.password.length < 6) {
-        this.validationErrors.password = '密码长度不能少于6个字符';
-        isValid = false;
-      }
-      
-      return isValid;
-    },
-    login() {
-      if (!this.validateForm()) {
-        return;
-      }
-      
-      this.error = null;
-      this.loading = true;
-      
-      // 模拟API登录请求
-      setTimeout(() => {
-        try {
-          // 这里将替换为实际的API调用
-          // const response = await axios.post('/api/auth/login', this.credentials);
-          
-          // 模拟登录成功
-          if (this.credentials.username === 'admin' && this.credentials.password === 'password') {
-            // 存储令牌和用户信息到本地存储
-            localStorage.setItem('token', 'mock-jwt-token');
-            localStorage.setItem('user', JSON.stringify({
-              id: 1,
-              username: 'admin',
-              fullName: '管理员',
-              role: 'admin'
-            }));
-            
-            // 重定向到首页或原目标页面
-            const redirectPath = this.$route.query.redirect || '/';
-            this.$router.push(redirectPath);
-          } else {
-            // 模拟登录失败
-            this.error = '用户名或密码不正确';
-          }
-          
-          this.loading = false;
-        } catch (err) {
-          this.error = '登录失败: ' + (err.message || '未知错误');
-          this.loading = false;
-        }
-      }, 1500);
-    }
+<script setup>
+import { ref, reactive } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { useUserStore } from '../stores/user';
+import { useNotificationStore } from '../stores/notification';
+
+const router = useRouter();
+const route = useRoute();
+const userStore = useUserStore();
+const notificationStore = useNotificationStore();
+
+const credentials = reactive({
+  username: '',
+  password: '',
+  remember: false
+});
+
+const validationErrors = reactive({});
+const showPassword = ref(false);
+
+const validateForm = () => {
+  validationErrors.username = '';
+  validationErrors.password = '';
+  let isValid = true;
+  
+  if (!credentials.username.trim()) {
+    validationErrors.username = '用户名不能为空';
+    isValid = false;
   }
-}
+  
+  if (!credentials.password) {
+    validationErrors.password = '密码不能为空';
+    isValid = false;
+  } else if (credentials.password.length < 6) {
+    validationErrors.password = '密码长度不能少于6个字符';
+    isValid = false;
+  }
+  
+  return isValid;
+};
+
+const handleLogin = async () => {
+  if (!validateForm()) {
+    return;
+  }
+  
+  try {
+    await userStore.login(credentials);
+    
+    // 登录成功，显示欢迎通知
+    notificationStore.success(`欢迎回来，${userStore.userProfile.username}！`);
+    
+    // 重定向到首页或原目标页面
+    const redirectPath = route.query.redirect || '/';
+    router.push(redirectPath);
+  } catch (error) {
+    // 错误已在store中处理，这里不需要额外处理
+    console.error('登录失败:', error);
+  }
+};
 </script>
 
 <style scoped>

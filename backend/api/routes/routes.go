@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/alexfaker/jilang-agent/api/handlers"
-	"github.com/alexfaker/jilang-agent/api/middleware"
+	jilangMiddleware "github.com/alexfaker/jilang-agent/api/middleware"
 	"github.com/alexfaker/jilang-agent/config"
 	"github.com/alexfaker/jilang-agent/pkg/database"
 	"github.com/go-chi/chi/v5"
@@ -67,7 +67,7 @@ func InitRoutes(db *database.DB, logger *zap.SugaredLogger, cfg *config.Config) 
 		// 需要认证的路由
 		r.Group(func(r chi.Router) {
 			// JWT 认证中间件
-			r.Use(middleware.AuthMiddleware(cfg.Auth.JWTSecret))
+			r.Use(jilangMiddleware.AuthMiddleware(cfg.Auth.JWTSecret))
 
 			// 用户相关
 			r.Route("/users", func(r chi.Router) {
