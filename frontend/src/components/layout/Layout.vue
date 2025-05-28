@@ -218,7 +218,10 @@ const mainNavItems = [
   { name: '仪表盘', path: '/dashboard', activePattern: '/dashboard' },
   { name: '工作流管理', path: '/workflows', activePattern: '/workflows' },
   { name: '执行历史', path: '/executions', activePattern: '/executions' },
-  { name: '代理管理', path: '/agents', activePattern: '/agents' }
+  { name: '代理管理', path: '/agents', activePattern: '/agents' },
+  { name: '积分管理', path: '/points', activePattern: '/points' },
+  { name: '充值中心', path: '/recharge', activePattern: '/recharge' },
+  { name: '服务购买', path: '/purchase', activePattern: '/purchase' }
 ];
 
 // 用户菜单项

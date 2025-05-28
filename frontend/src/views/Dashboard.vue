@@ -1,166 +1,162 @@
 <template>
-  <div class="py-6">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">仪表盘</h1>
+  <div class="flex-1 overflow-y-auto p-6">
+    <!-- 欢迎信息 -->
+    <div class="mb-8">
+      <h2 class="text-2xl font-bold text-gray-800">欢迎回来，{{ userName }}</h2>
+      <p class="text-gray-600">这是您的AI工作流平台使用概览</p>
     </div>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <!-- 欢迎卡片 -->
-      <div class="mt-6 bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden">
-        <div class="px-4 py-5 sm:p-6">
-          <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-            欢迎使用 JiLang Agent
-          </h3>
-          <div class="mt-2 max-w-xl text-sm text-gray-500 dark:text-gray-400">
-            <p>智能工作流自动化平台 - 让您的团队专注于更有价值的工作</p>
+    
+    <!-- 概览卡片 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <!-- 工作流数量 -->
+      <div class="card bg-white p-6 rounded-2xl shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+            <RectangleGroupIcon class="text-blue-600 w-6 h-6" />
           </div>
-          <div class="mt-5">
-            <button
-              type="button"
-              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              @click="$router.push('/workflows/create')"
+          <span class="text-sm font-medium text-gray-500">工作流</span>
+        </div>
+        <div class="flex items-end justify-between">
+          <div>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.workflows }}</p>
+            <p class="text-sm text-gray-500">创建的工作流</p>
+          </div>
+          <span class="text-green-500 text-sm font-medium flex items-center">
+            <ArrowTrendingUpIcon class="w-4 h-4 mr-1" />
+            8.2%
+          </span>
+        </div>
+      </div>
+      
+      <!-- 执行次数 -->
+      <div class="card bg-white p-6 rounded-2xl shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+            <PlayCircleIcon class="text-purple-600 w-6 h-6" />
+          </div>
+          <span class="text-sm font-medium text-gray-500">执行</span>
+        </div>
+        <div class="flex items-end justify-between">
+          <div>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.executions }}</p>
+            <p class="text-sm text-gray-500">本月执行次数</p>
+          </div>
+          <span class="text-green-500 text-sm font-medium flex items-center">
+            <ArrowTrendingUpIcon class="w-4 h-4 mr-1" />
+            12.4%
+          </span>
+        </div>
+      </div>
+      
+      <!-- 使用的代理 -->
+      <div class="card bg-white p-6 rounded-2xl shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+            <CpuChipIcon class="text-amber-600 w-6 h-6" />
+          </div>
+          <span class="text-sm font-medium text-gray-500">工作流</span>
+        </div>
+        <div class="flex items-end justify-between">
+          <div>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.activeWorkflows }}</p>
+            <p class="text-sm text-gray-500">使用中的工作流</p>
+          </div>
+          <span class="text-green-500 text-sm font-medium flex items-center">
+            <ArrowTrendingUpIcon class="w-4 h-4 mr-1" />
+            4.1%
+          </span>
+        </div>
+      </div>
+      
+      <!-- 节省时间 -->
+      <div class="card bg-white p-6 rounded-2xl shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+            <ClockIcon class="text-green-600 w-6 h-6" />
+          </div>
+          <span class="text-sm font-medium text-gray-500">节省</span>
+        </div>
+        <div class="flex items-end justify-between">
+          <div>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.timeSaved }}</p>
+            <p class="text-sm text-gray-500">节省小时（估计）</p>
+          </div>
+          <span class="text-green-500 text-sm font-medium flex items-center">
+            <ArrowTrendingUpIcon class="w-4 h-4 mr-1" />
+            15.3%
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 活动列表和最近工作流 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- 最近活动 -->
+      <div class="card bg-white p-6 rounded-2xl shadow-lg">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-800">最近活动</h3>
+          <router-link to="/executions" class="text-sm text-indigo-600 hover:text-indigo-800">查看全部</router-link>
+        </div>
+        <div class="space-y-4">
+          <!-- 活动项 -->
+          <div v-for="activity in recentActivities" :key="activity.id" class="flex items-start">
+            <div :class="[
+              'w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0',
+              activity.type === 'execute' ? 'bg-blue-100' : 
+              activity.type === 'complete' ? 'bg-green-100' : 
+              activity.type === 'create' ? 'bg-purple-100' : 'bg-amber-100'
+            ]">
+              <PlayIcon v-if="activity.type === 'execute'" class="w-5 h-5 text-blue-600" />
+              <CheckIcon v-else-if="activity.type === 'complete'" class="w-5 h-5 text-green-600" />
+              <PlusIcon v-else-if="activity.type === 'create'" class="w-5 h-5 text-purple-600" />
+              <CogIcon v-else class="w-5 h-5 text-amber-600" />
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-gray-800">
+                {{ activity.title }} 
+                <router-link :to="`/workflows/${activity.workflowId}`" class="text-indigo-600 hover:text-indigo-800">{{ activity.workflowName }}</router-link>
+              </p>
+              <p class="text-xs text-gray-500">{{ formatTimeAgo(activity.timestamp) }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 常用工作流 -->
+      <div class="card bg-white p-6 rounded-2xl shadow-lg">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-800">常用工作流</h3>
+          <router-link to="/workflows" class="text-sm text-indigo-600 hover:text-indigo-800">查看全部</router-link>
+        </div>
+        <div class="space-y-4">
+          <!-- 工作流项 -->
+          <div v-for="workflow in frequentWorkflows" :key="workflow.id" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            <div class="flex items-center">
+              <div :class="[
+                'w-10 h-10 rounded-full flex items-center justify-center mr-4',
+                workflow.category === 'data' ? 'bg-blue-100' :
+                workflow.category === 'support' ? 'bg-purple-100' :
+                workflow.category === 'content' ? 'bg-green-100' : 'bg-amber-100'
+              ]">
+                <CpuChipIcon v-if="workflow.category === 'data'" class="w-5 h-5 text-blue-600" />
+                <ChatBubbleLeftRightIcon v-else-if="workflow.category === 'support'" class="w-5 h-5 text-purple-600" />
+                <DocumentTextIcon v-else-if="workflow.category === 'content'" class="w-5 h-5 text-green-600" />
+                <MagnifyingGlassIcon v-else class="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-800">{{ workflow.name }}</p>
+                <p class="text-xs text-gray-500">上次执行: {{ formatTimeAgo(workflow.lastExecuted) }}</p>
+              </div>
+            </div>
+            <button 
+              @click="executeWorkflow(workflow.id)"
+              class="text-gray-600 hover:text-indigo-600 transition-colors"
+              :disabled="executingWorkflows.includes(workflow.id)"
             >
-              创建新工作流
+              <PlayIcon v-if="!executingWorkflows.includes(workflow.id)" class="w-5 h-5" />
+              <ArrowPathIcon v-else class="w-5 h-5 animate-spin" />
             </button>
           </div>
-        </div>
-      </div>
-
-      <!-- 摘要卡片 -->
-      <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <!-- 工作流 -->
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0 bg-primary-500 rounded-md p-3">
-                <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                    工作流总数
-                  </dt>
-                  <dd>
-                    <div class="text-lg font-medium text-gray-900 dark:text-white">
-                      {{ stats.workflows || 0 }}
-                    </div>
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-          <div class="bg-gray-50 dark:bg-gray-700 px-5 py-3">
-            <div class="text-sm">
-              <router-link to="/workflows" class="font-medium text-primary-600 dark:text-primary-400 hover:text-primary-500 dark:hover:text-primary-300">
-                查看所有工作流
-              </router-link>
-            </div>
-          </div>
-        </div>
-
-        <!-- 执行 -->
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
-                <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                    成功执行次数
-                  </dt>
-                  <dd>
-                    <div class="text-lg font-medium text-gray-900 dark:text-white">
-                      {{ stats.successfulExecutions || 0 }}
-                    </div>
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-          <div class="bg-gray-50 dark:bg-gray-700 px-5 py-3">
-            <div class="text-sm">
-              <router-link to="/executions" class="font-medium text-primary-600 dark:text-primary-400 hover:text-primary-500 dark:hover:text-primary-300">
-                查看执行历史
-              </router-link>
-            </div>
-          </div>
-        </div>
-
-        <!-- 代理 -->
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0 bg-purple-500 rounded-md p-3">
-                <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                    活跃代理数
-                  </dt>
-                  <dd>
-                    <div class="text-lg font-medium text-gray-900 dark:text-white">
-                      {{ stats.activeAgents || 0 }}
-                    </div>
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-          <div class="bg-gray-50 dark:bg-gray-700 px-5 py-3">
-            <div class="text-sm">
-              <router-link to="/agents" class="font-medium text-primary-600 dark:text-primary-400 hover:text-primary-500 dark:hover:text-primary-300">
-                查看所有代理
-              </router-link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 近期活动 -->
-      <div class="mt-8">
-        <h2 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">近期活动</h2>
-        <div class="mt-2 bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
-          <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
-            <li v-if="activities.length === 0" class="px-4 py-4 sm:px-6">
-              <div class="text-sm text-gray-500 dark:text-gray-400">
-                暂无活动记录
-              </div>
-            </li>
-            <li v-for="activity in activities" :key="activity.id" class="px-4 py-4 sm:px-6">
-              <div class="flex items-center space-x-4">
-                <div class="flex-shrink-0">
-                  <svg v-if="activity.type === 'workflow_completed'" class="h-8 w-8 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <svg v-else-if="activity.type === 'workflow_failed'" class="h-8 w-8 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <svg v-else class="h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900 dark:text-white">
-                    {{ activity.title }}
-                  </p>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">
-                    {{ activity.description }}
-                  </p>
-                </div>
-                <div class="text-sm text-gray-500 dark:text-gray-400">
-                  {{ formatTime(activity.timestamp) }}
-                </div>
-              </div>
-            </li>
-          </ul>
         </div>
       </div>
     </div>
@@ -169,62 +165,167 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { format } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+import { useAuthStore } from '../stores/auth';
+import {
+  RectangleGroupIcon,
+  PlayCircleIcon,
+  CpuChipIcon,
+  ClockIcon,
+  ArrowTrendingUpIcon,
+  PlayIcon,
+  CheckIcon,
+  PlusIcon,
+  CogIcon,
+  ChatBubbleLeftRightIcon,
+  DocumentTextIcon,
+  MagnifyingGlassIcon,
+  ArrowPathIcon
+} from '@heroicons/vue/24/outline';
+
+const authStore = useAuthStore();
+
+// 用户信息
+const userName = ref(authStore.user?.username || '用户');
 
 // 统计数据
 const stats = ref({
-  workflows: 3,
-  successfulExecutions: 27,
-  activeAgents: 5
+  workflows: 12,
+  executions: 237,
+  activeWorkflows: 8,
+  timeSaved: 42.5
 });
 
-// 活动记录
-const activities = ref([
+// 最近活动
+const recentActivities = ref([
   {
     id: 1,
-    type: 'workflow_completed',
-    title: '工作流 "每日数据同步" 执行成功',
-    description: '所有任务都已成功完成，耗时 2 分钟 30 秒',
-    timestamp: new Date(Date.now() - 30 * 60 * 1000)
+    type: 'execute',
+    title: '执行了工作流',
+    workflowName: '数据处理自动化',
+    workflowId: 1,
+    timestamp: new Date(Date.now() - 10 * 60 * 1000)
   },
   {
     id: 2,
-    type: 'workflow_failed',
-    title: '工作流 "数据备份" 执行失败',
-    description: '任务 "连接远程服务器" 失败: 连接超时',
+    type: 'complete',
+    title: '完成了工作流',
+    workflowName: '客户支持回复',
+    workflowId: 2,
     timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000)
   },
   {
     id: 3,
-    type: 'agent_created',
-    title: '新建代理 "数据分析助手"',
-    description: '代理已创建并准备就绪',
-    timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000)
+    type: 'create',
+    title: '创建了新工作流',
+    workflowName: '智能内容审核',
+    workflowId: 3,
+    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000)
+  },
+  {
+    id: 4,
+    type: 'update',
+    title: '更新了工作流',
+    workflowName: '数据处理自动化',
+    workflowId: 1,
+    timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
   }
 ]);
 
-// 格式化时间
-const formatTime = (date) => {
-  return format(new Date(date), 'MM月dd日 HH:mm', { locale: zhCN });
+// 常用工作流
+const frequentWorkflows = ref([
+  {
+    id: 1,
+    name: '数据处理自动化',
+    category: 'data',
+    lastExecuted: new Date(Date.now() - 10 * 60 * 1000)
+  },
+  {
+    id: 2,
+    name: '客户支持回复',
+    category: 'support',
+    lastExecuted: new Date(Date.now() - 2 * 60 * 60 * 1000)
+  },
+  {
+    id: 3,
+    name: '智能内容审核',
+    category: 'content',
+    lastExecuted: new Date(Date.now() - 24 * 60 * 60 * 1000)
+  },
+  {
+    id: 4,
+    name: '市场数据分析',
+    category: 'analysis',
+    lastExecuted: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+  }
+]);
+
+// 正在执行的工作流
+const executingWorkflows = ref([]);
+
+// 时间格式化函数
+const formatTimeAgo = (timestamp) => {
+  const now = new Date();
+  const diff = now - timestamp;
+  const minutes = Math.floor(diff / (1000 * 60));
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+  if (minutes < 60) {
+    return `${minutes}分钟前`;
+  } else if (hours < 24) {
+    return `${hours}小时前`;
+  } else if (days === 1) {
+    return '昨天';
+  } else {
+    return `${days}天前`;
+  }
 };
 
-// 获取统计数据
-const fetchStats = async () => {
-  // TODO: 从API获取实际数据
-  // const response = await statsApi.getDashboardStats();
-  // stats.value = response.data;
-};
-
-// 获取活动记录
-const fetchActivities = async () => {
-  // TODO: 从API获取实际数据
-  // const response = await activitiesApi.getRecentActivities();
-  // activities.value = response.data;
+// 执行工作流
+const executeWorkflow = async (workflowId) => {
+  if (executingWorkflows.value.includes(workflowId)) return;
+  
+  executingWorkflows.value.push(workflowId);
+  
+  try {
+    // 模拟执行
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // 更新活动记录
+    const workflow = frequentWorkflows.value.find(w => w.id === workflowId);
+    if (workflow) {
+      recentActivities.value.unshift({
+        id: Date.now(),
+        type: 'execute',
+        title: '执行了工作流',
+        workflowName: workflow.name,
+        workflowId: workflowId,
+        timestamp: new Date()
+      });
+      workflow.lastExecuted = new Date();
+    }
+    
+    // 更新统计
+    stats.value.executions++;
+  } catch (error) {
+    console.error('执行工作流失败:', error);
+  } finally {
+    executingWorkflows.value = executingWorkflows.value.filter(id => id !== workflowId);
+  }
 };
 
 onMounted(() => {
-  fetchStats();
-  fetchActivities();
+  // 获取最新统计数据
+  // loadDashboardStats();
 });
-</script> 
+</script>
+
+<style scoped>
+.card {
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+</style> 

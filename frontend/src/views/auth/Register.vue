@@ -12,42 +12,79 @@
           </div>
           <div class="flex items-center">
             <router-link 
-              to="/auth/register" 
+              to="/auth/login" 
               class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
-              注册
+              登录
             </router-link>
           </div>
         </div>
       </div>
     </nav>
 
-    <!-- 登录表单区域 -->
+    <!-- 注册表单区域 -->
     <div class="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
       <div class="max-w-md w-full">
         <div class="auth-card bg-white p-8 rounded-2xl shadow-lg">
-          <!-- Logo和登录标题 -->
+          <!-- Logo和注册标题 -->
           <div class="flex items-center justify-center mb-8">
             <CpuChipIcon class="h-10 w-10 text-indigo-600 mr-3" />
             <h2 class="text-3xl font-bold text-gray-800">JiLang Agent</h2>
           </div>
-          
+
           <!-- 错误提示 -->
-          <div v-if="userStore.error" class="rounded-md bg-red-50 p-4 mb-6">
+          <div v-if="notification.show" :class="[
+            'rounded-md p-4 mb-6',
+            notification.type === 'success' ? 'bg-green-50' : 'bg-red-50'
+          ]">
             <div class="flex">
               <div class="flex-shrink-0">
-                <ExclamationTriangleIcon class="h-5 w-5 text-red-400" />
+                <CheckCircleIcon v-if="notification.type === 'success'" class="h-5 w-5 text-green-400" />
+                <ExclamationTriangleIcon v-else class="h-5 w-5 text-red-400" />
               </div>
               <div class="ml-3">
-                <h3 class="text-sm font-medium text-red-800">
-                  {{ userStore.error }}
+                <h3 :class="[
+                  'text-sm font-medium',
+                  notification.type === 'success' ? 'text-green-800' : 'text-red-800'
+                ]">
+                  {{ notification.message }}
                 </h3>
+              </div>
+              <div class="ml-auto pl-3">
+                <button @click="notification.show = false" :class="[
+                  'inline-flex text-sm',
+                  notification.type === 'success' ? 'text-green-500 hover:text-green-400' : 'text-red-500 hover:text-red-400'
+                ]">
+                  <XMarkIcon class="h-4 w-4" />
+                </button>
               </div>
             </div>
           </div>
           
-          <!-- 登录表单 -->
-          <form class="space-y-6" @submit.prevent="handleLogin">
+          <!-- 注册表单 -->
+          <form class="space-y-6" @submit.prevent="handleRegister">
+            <!-- 用户名输入 -->
+            <div>
+              <label for="username" class="block text-sm font-medium text-gray-700">用户名</label>
+              <div class="mt-1 relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <UserIcon class="h-5 w-5 text-gray-400" />
+                </div>
+                <input 
+                  id="username" 
+                  name="username" 
+                  type="text" 
+                  autocomplete="username" 
+                  required
+                  v-model="form.username"
+                  :class="{ 'border-red-300': errors.username }"
+                  class="auth-input appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                  placeholder="请输入用户名"
+                />
+              </div>
+              <p v-if="errors.username" class="mt-2 text-sm text-red-600">{{ errors.username }}</p>
+            </div>
+
             <!-- 邮箱输入 -->
             <div>
               <label for="email" class="block text-sm font-medium text-gray-700">邮箱地址</label>
@@ -61,23 +98,18 @@
                   type="email" 
                   autocomplete="email" 
                   required
-                  v-model="credentials.email"
-                  :class="{ 'border-red-300': validationErrors.email }"
+                  v-model="form.email"
+                  :class="{ 'border-red-300': errors.email }"
                   class="auth-input appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                   placeholder="请输入邮箱地址"
                 />
               </div>
-              <p v-if="validationErrors.email" class="mt-2 text-sm text-red-600">{{ validationErrors.email }}</p>
+              <p v-if="errors.email" class="mt-2 text-sm text-red-600">{{ errors.email }}</p>
             </div>
 
             <!-- 密码输入 -->
             <div>
-              <div class="flex items-center justify-between">
-                <label for="password" class="block text-sm font-medium text-gray-700">密码</label>
-                <a href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
-                  忘记密码?
-                </a>
-              </div>
+              <label for="password" class="block text-sm font-medium text-gray-700">密码</label>
               <div class="mt-1 relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <LockClosedIcon class="h-5 w-5 text-gray-400" />
@@ -86,12 +118,12 @@
                   id="password" 
                   name="password" 
                   :type="showPassword ? 'text' : 'password'" 
-                  autocomplete="current-password" 
+                  autocomplete="new-password" 
                   required
-                  v-model="credentials.password"
-                  :class="{ 'border-red-300': validationErrors.password }"
+                  v-model="form.password"
+                  :class="{ 'border-red-300': errors.password }"
                   class="auth-input appearance-none block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                  placeholder="请输入密码"
+                  placeholder="请输入密码（至少8位）"
                 />
                 <button 
                   type="button" 
@@ -102,45 +134,73 @@
                   <EyeSlashIcon v-else class="h-5 w-5 text-gray-400 hover:text-gray-600" />
                 </button>
               </div>
-              <p v-if="validationErrors.password" class="mt-2 text-sm text-red-600">{{ validationErrors.password }}</p>
+              <p class="mt-1 text-xs text-gray-500">密码长度至少8位，包含字母和数字</p>
+              <p v-if="errors.password" class="mt-2 text-sm text-red-600">{{ errors.password }}</p>
             </div>
 
-            <!-- 记住我 -->
-            <div class="flex items-center justify-between">
-              <div class="flex items-center">
+            <!-- 确认密码 -->
+            <div>
+              <label for="confirmPassword" class="block text-sm font-medium text-gray-700">确认密码</label>
+              <div class="mt-1 relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <LockClosedIcon class="h-5 w-5 text-gray-400" />
+                </div>
                 <input 
-                  id="remember-me" 
-                  name="remember-me" 
-                  type="checkbox"
-                  v-model="credentials.remember"
+                  id="confirmPassword" 
+                  name="confirmPassword" 
+                  type="password" 
+                  autocomplete="new-password" 
+                  required
+                  v-model="form.confirmPassword"
+                  :class="{ 'border-red-300': errors.confirmPassword }"
+                  class="auth-input appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                  placeholder="请再次输入密码"
+                />
+              </div>
+              <p v-if="errors.confirmPassword" class="mt-2 text-sm text-red-600">{{ errors.confirmPassword }}</p>
+            </div>
+
+            <!-- 条款同意 -->
+            <div class="flex items-start">
+              <div class="flex items-center h-5">
+                <input 
+                  id="terms" 
+                  name="terms" 
+                  type="checkbox" 
+                  required
+                  v-model="form.agreeToTerms"
                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                 />
-                <label for="remember-me" class="ml-2 block text-sm text-gray-900">
-                  记住我
+              </div>
+              <div class="ml-3 text-sm">
+                <label for="terms" class="font-medium text-gray-700">我同意
+                  <a href="#" class="text-indigo-600 hover:text-indigo-500">服务条款</a>
+                  和
+                  <a href="#" class="text-indigo-600 hover:text-indigo-500">隐私政策</a>
                 </label>
               </div>
             </div>
 
-            <!-- 登录按钮 -->
+            <!-- 注册按钮 -->
             <div>
               <button 
                 type="submit"
-                :disabled="userStore.loading"
+                :disabled="loading"
                 class="auth-btn w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all hover:transform hover:-translate-y-0.5"
               >
-                <span v-if="userStore.loading" class="flex items-center">
+                <span v-if="loading" class="flex items-center">
                   <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  登录中...
+                  注册中...
                 </span>
-                <span v-else>登录</span>
+                <span v-else>注册</span>
               </button>
             </div>
           </form>
 
-          <!-- 社交登录 -->
+          <!-- 社交注册 -->
           <div class="mt-6">
             <div class="relative">
               <div class="absolute inset-0 flex items-center">
@@ -148,7 +208,7 @@
               </div>
               <div class="relative flex justify-center text-sm">
                 <span class="px-2 bg-white text-gray-500">
-                  或通过以下方式登录
+                  或通过以下方式注册
                 </span>
               </div>
             </div>
@@ -185,11 +245,11 @@
           </div>
         </div>
 
-        <!-- 注册提示 -->
+        <!-- 登录提示 -->
         <p class="mt-6 text-center text-sm text-gray-600">
-          还没有账户?
-          <router-link to="/auth/register" class="font-medium text-indigo-600 hover:text-indigo-500">
-            注册新账户
+          已有账户?
+          <router-link to="/auth/login" class="font-medium text-indigo-600 hover:text-indigo-500">
+            登录
           </router-link>
         </p>
       </div>
@@ -198,88 +258,166 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { useUserStore } from '../../stores/user';
-import { useToast } from 'vue-toastification';
-import notify from '../../utils/notification';
+import { reactive, ref, computed, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import { authApi } from '../../api/index';
 import { 
   CpuChipIcon, 
   EnvelopeIcon, 
   LockClosedIcon, 
+  UserIcon,
   EyeIcon, 
   EyeSlashIcon,
-  ExclamationTriangleIcon 
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  XMarkIcon 
 } from '@heroicons/vue/24/outline';
 
 const router = useRouter();
-const route = useRoute();
-const userStore = useUserStore();
-const toast = useToast();
 
-const credentials = reactive({
+// 表单数据
+const form = reactive({
+  username: '',
   email: '',
   password: '',
-  remember: false
+  confirmPassword: '',
+  agreeToTerms: false
 });
 
-const validationErrors = ref({});
+// 状态管理
+const loading = ref(false);
 const showPassword = ref(false);
+const errors = reactive({});
 
+// 通知
+const notification = reactive({
+  show: false,
+  type: 'error',
+  message: ''
+});
+
+// 切换密码显示
 const togglePassword = () => {
   showPassword.value = !showPassword.value;
 };
 
-const validateForm = () => {
-  const errors = {};
-  if (!credentials.email) {
-    errors.email = '请输入邮箱地址';
-  } else if (!/^\S+@\S+\.\S+$/.test(credentials.email)) {
-    errors.email = '请输入有效的邮箱地址';
-  }
+// 显示通知
+const showNotification = (type, message) => {
+  notification.show = true;
+  notification.type = type;
+  notification.message = message;
   
-  if (!credentials.password) {
-    errors.password = '请输入密码';
-  } else if (credentials.password.length < 6) {
-    errors.password = '密码长度不能小于6位';
-  }
-  
-  validationErrors.value = errors;
-  return Object.keys(errors).length === 0;
+  setTimeout(() => {
+    notification.show = false;
+  }, 5000);
 };
 
-const handleLogin = async () => {
-  // 重置错误
-  userStore.error = null;
-  validationErrors.value = {};
-  
-  // 表单验证
+// 验证函数
+const validateForm = () => {
+  const newErrors = {};
+
+  // 用户名验证
+  if (!form.username.trim()) {
+    newErrors.username = '用户名不能为空';
+  } else if (form.username.length < 3) {
+    newErrors.username = '用户名至少3个字符';
+  } else if (!/^[a-zA-Z0-9_]+$/.test(form.username)) {
+    newErrors.username = '用户名只能包含字母、数字和下划线';
+  }
+
+  // 邮箱验证
+  if (!form.email.trim()) {
+    newErrors.email = '邮箱不能为空';
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    newErrors.email = '请输入有效的邮箱地址';
+  }
+
+  // 密码验证
+  if (!form.password) {
+    newErrors.password = '密码不能为空';
+  } else if (form.password.length < 8) {
+    newErrors.password = '密码长度至少8位';
+  }
+
+  // 确认密码验证
+  if (!form.confirmPassword) {
+    newErrors.confirmPassword = '请确认密码';
+  } else if (form.password !== form.confirmPassword) {
+    newErrors.confirmPassword = '两次输入的密码不一致';
+  }
+
+  // 更新错误状态
+  Object.keys(errors).forEach(key => delete errors[key]);
+  Object.assign(errors, newErrors);
+
+  return Object.keys(newErrors).length === 0;
+};
+
+// 注册处理
+const handleRegister = async () => {
   if (!validateForm()) {
+    showNotification('error', '请检查表单输入');
     return;
   }
+
+  if (!form.agreeToTerms) {
+    showNotification('error', '请同意服务条款和隐私政策');
+    return;
+  }
+
+  loading.value = true;
   
   try {
-    // 调用用户存储的登录方法
-    await userStore.login({
-      email: credentials.email,
-      password: credentials.password,
-      remember: credentials.remember
-    });
+    const registerData = {
+      username: form.username.trim(),
+      email: form.email.trim(),
+      password: form.password
+    };
+
+    const response = await authApi.register(registerData);
     
-    // 登录成功通知
-    notify.success('登录成功，欢迎回来！');
+    showNotification('success', '注册成功！正在跳转到登录页面...');
     
-    // 重定向到之前尝试访问的页面或默认到仪表盘
-    const redirectPath = route.query.redirect || '/dashboard';
-    router.push(redirectPath);
+    // 延迟跳转，让用户看到成功消息
+    setTimeout(() => {
+      router.push({
+        name: 'Login',
+        query: { message: 'registration_success' }
+      });
+    }, 2000);
+    
   } catch (error) {
-    // 错误已在用户存储中处理，这里只需显示通知
-    notify.error(userStore.error || '登录失败，请检查您的邮箱和密码');
+    console.error('注册失败:', error);
+    
+    let errorMessage = '注册失败，请稍后重试';
+    
+    if (error.response && error.response.data && error.response.data.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    showNotification('error', errorMessage);
+  } finally {
+    loading.value = false;
   }
 };
 </script>
 
 <style scoped>
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .auth-card {
   transition: all 0.3s ease;
 }

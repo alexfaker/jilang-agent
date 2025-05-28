@@ -6,7 +6,13 @@ import Layout from '../components/layout/Layout.vue'
 const routes = [
   {
     path: '/',
-    redirect: '/dashboard'
+    redirect: '/home'
+  },
+  {
+    path: '/home',
+    name: 'Home',
+    component: () => import('../views/HomePage.vue'),
+    meta: { guest: true }
   },
   {
     path: '/',
@@ -60,6 +66,24 @@ const routes = [
         name: 'ExecutionDetail',
         component: () => import('../views/executions/ExecutionDetail.vue'),
         meta: { requiresAuth: true }
+      },
+      {
+        path: 'points',
+        name: 'Points',
+        component: () => import('../views/points/PointsView.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'recharge',
+        name: 'Recharge',
+        component: () => import('../views/recharge/RechargeView.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'purchase',
+        name: 'Purchase',
+        component: () => import('../views/purchase/PurchaseView.vue'),
+        meta: { requiresAuth: true }
       }
     ]
   },
@@ -69,13 +93,12 @@ const routes = [
     component: () => import('../views/auth/Login.vue'),
     meta: { guest: true }
   },
-  // 暂时注释掉不存在的注册页面
-  // {
-  //   path: '/auth/register',
-  //   name: 'Register',
-  //   component: () => import('../views/auth/Register.vue'),
-  //   meta: { guest: true }
-  // },
+  {
+    path: '/auth/register',
+    name: 'Register',
+    component: () => import('../views/auth/Register.vue'),
+    meta: { guest: true }
+  },
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',

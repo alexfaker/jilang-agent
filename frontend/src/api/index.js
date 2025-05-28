@@ -121,8 +121,9 @@ uploadApiClient.interceptors.response.use(
 
 // 认证相关API
 export const authApi = {
-  login: (credentials) => apiClient.post('/auth/login', credentials),
-  register: (userData) => apiClient.post('/auth/register', userData),
+  login: (data) => apiClient.post('/auth/login', data),
+  register: (data) => apiClient.post('/auth/register', data),
+  refresh: () => apiClient.post('/auth/refresh'),
   logout: () => apiClient.post('/auth/logout'),
   getProfile: () => apiClient.get('/users/me'),
   updateProfile: (data) => apiClient.put('/users/me', data),
@@ -148,16 +149,17 @@ export const settingsApi = {
 export const workflowApi = {
   getWorkflows: (params) => apiClient.get('/workflows', { params }),
   getWorkflow: (id) => apiClient.get(`/workflows/${id}`),
-  createWorkflow: (workflow) => apiClient.post('/workflows', workflow),
-  updateWorkflow: (id, workflow) => apiClient.put(`/workflows/${id}`, workflow),
+  createWorkflow: (data) => apiClient.post('/workflows', data),
+  updateWorkflow: (id, data) => apiClient.put(`/workflows/${id}`, data),
   deleteWorkflow: (id) => apiClient.delete(`/workflows/${id}`),
-  executeWorkflow: (id, params) => apiClient.post(`/workflows/${id}/execute`, params)
+  executeWorkflow: (id, data) => apiClient.post(`/workflows/${id}/execute`, data)
 };
 
 // 执行历史相关API
 export const executionApi = {
   getExecutions: (params) => apiClient.get('/executions', { params }),
   getExecution: (id) => apiClient.get(`/executions/${id}`),
+  deleteExecution: (id) => apiClient.delete(`/executions/${id}`),
   cancelExecution: (id) => apiClient.post(`/executions/${id}/cancel`)
 };
 
@@ -165,10 +167,39 @@ export const executionApi = {
 export const agentApi = {
   getAgents: (params) => apiClient.get('/agents', { params }),
   getAgent: (id) => apiClient.get(`/agents/${id}`),
-  createAgent: (agent) => apiClient.post('/agents', agent),
-  updateAgent: (id, agent) => apiClient.put(`/agents/${id}`, agent),
+  getAgentCategories: () => apiClient.get('/agent-categories'),
+  createAgent: (data) => apiClient.post('/agents', data),
+  updateAgent: (id, data) => apiClient.put(`/agents/${id}`, data),
   deleteAgent: (id) => apiClient.delete(`/agents/${id}`),
   testAgent: (id) => apiClient.post(`/agents/${id}/test`)
+};
+
+// 统计相关API
+export const statsApi = {
+  getDashboardStats: () => apiClient.get('/stats/dashboard'),
+  getWorkflowStats: (params) => apiClient.get('/stats/workflows', { params }),
+  getExecutionStats: (params) => apiClient.get('/stats/executions', { params })
+};
+
+// 积分相关API
+export const pointsApi = {
+  getPoints: () => apiClient.get('/points'),
+  getPointsHistory: (params) => apiClient.get('/points/history', { params }),
+  usePoints: (data) => apiClient.post('/points/use', data)
+};
+
+// 充值相关API
+export const rechargeApi = {
+  getRechargeHistory: (params) => apiClient.get('/recharge/history', { params }),
+  createRecharge: (data) => apiClient.post('/recharge', data),
+  getRechargeStatus: (id) => apiClient.get(`/recharge/${id}/status`)
+};
+
+// 购买相关API
+export const purchaseApi = {
+  getPurchaseHistory: (params) => apiClient.get('/purchase/history', { params }),
+  createPurchase: (data) => apiClient.post('/purchase', data),
+  getPurchaseStatus: (id) => apiClient.get(`/purchase/${id}/status`)
 };
 
 export default apiClient; 
