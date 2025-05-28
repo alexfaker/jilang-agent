@@ -96,18 +96,38 @@ export const useSettingsStore = defineStore('settings', {
      */
     async initSettings() {
       try {
-        await this.fetchSettings();
+        // 先从本地存储加载设置
+        this.loadFromLocalStorage();
+        
+        // 应用主题设置
+        this.applyThemeSettings();
+        
+        // 检查用户是否已登录
+        const token = localStorage.getItem('token');
+        if (token) {
+          // 用户已登录，尝试从API获取最新设置（非阻塞）
+          this.fetchSettings().catch(error => {
+            console.warn('无法从服务器获取设置，使用本地设置:', error.message);
+          });
+        } else {
+          // 用户未登录，仅使用本地设置
+          console.log('用户未登录，使用本地默认设置');
+        }
       } catch (error) {
         console.error('初始化设置失败:', error);
-        // 如果API调用失败，尝试从本地存储加载
-        this.loadFromLocalStorage();
+        // 确保主题被应用
+        this.applyThemeSettings();
       }
-      
-      // 无论如何，确保主题被应用
-      this.applyThemeSettings();
     },
     
     async fetchSettings() {
+      // 检查用户是否已登录
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('用户未登录，跳过设置API调用');
+        return;
+      }
+
       this.loading = true;
       
       try {
@@ -115,10 +135,10 @@ export const useSettingsStore = defineStore('settings', {
         const settings = await settingsApi.getSettings();
         this.updateSettings(settings);
       } catch (error) {
-        console.error('获取设置失败:', error);
-        this.error = error.message || '获取设置失败';
+        console.warn('获取设置失败:', error.message);
+        // 不设置this.error，避免显示错误消息给用户
         
-        // 如果API调用失败，尝试从本地存储加载
+        // 如果API调用失败，确保本地设置已加载
         this.loadFromLocalStorage();
       } finally {
         this.loading = false;

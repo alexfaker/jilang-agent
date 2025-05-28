@@ -1,0 +1,49 @@
+{
+  "go.useLanguageServer": true,
+  "go.languageServerExperimentalFeatures": {
+    "diagnostics": true,
+    "documentLink": true
+  },
+  "go.lintTool": "golangci-lint",
+  "go.lintOnSave": "package",
+  "go.vetOnSave": "package",
+  "go.buildOnSave": "package",
+  "go.coverOnSave": false,
+  "go.useCodeSnippetsOnFunctionSuggest": true,
+  "go.gocodeAutoBuild": true,
+  "go.gopath": "/Users/anderson/go",
+  "go.goroot": "/opt/homebrew/Cellar/go/1.24.3/libexec",
+  "go.toolsGopath": "/Users/anderson/go",
+  "go.inferGopath": true,
+  "go.enableCodeLens": {
+    "references": true,
+    "runtest": true
+  },
+  "gopls": {
+    "experimentalWorkspaceModule": true,
+    "completeUnimported": true,
+    "usePlaceholders": true,
+    "deepCompletion": true,
+    "matcher": "fuzzy",
+    "staticcheck": true,
+    "symbolMatcher": "fuzzy",
+    "gofumpt": true,
+    "analyses": {
+      "unusedparams": true,
+      "shadow": true,
+      "fieldalignment": false
+    },
+    "codelenses": {
+      "gc_details": false,
+      "generate": true,
+      "regenerate_cgo": true,
+      "test": true,
+      "tidy": true,
+      "upgrade_dependency": true,
+      "vendor": true
+    },
+    "env": {
+      "GO111MODULE": "on"
+    }
+  }
+} 

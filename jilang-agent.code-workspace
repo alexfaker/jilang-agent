@@ -1,0 +1,75 @@
+{
+  "folders": [
+    {
+      "name": "Backend",
+      "path": "./backend"
+    },
+    {
+      "name": "Frontend", 
+      "path": "./frontend"
+    },
+{
+"name": "UI",
+      "path": "./ui"
+}
+  ],
+  "settings": {
+    "go.useLanguageServer": true,
+    "go.languageServerFlags": [
+      "-rpc.trace",
+      "serve",
+      "--debug=localhost:6060"
+    ],
+    "go.languageServerExperimentalFeatures": {
+      "diagnostics": true,
+      "documentLink": true
+    },
+    "go.buildOnSave": "workspace",
+    "go.lintOnSave": "workspace",
+    "go.vetOnSave": "workspace",
+    "go.useCodeSnippetsOnFunctionSuggest": true,
+    "go.gocodeAutoBuild": true,
+    "go.inferGopath": true,
+    "go.gopath": "/Users/anderson/go",
+    "go.goroot": "/opt/homebrew/Cellar/go/1.24.3/libexec",
+    "go.toolsGopath": "/Users/anderson/go",
+    "gopls": {
+      "build.directoryFilters": ["-node_modules"],
+      "formatting.gofumpt": true,
+      "ui.completion.usePlaceholders": true,
+      "ui.diagnostic.staticcheck": true,
+      "ui.navigation.importShortcut": "Both",
+      "ui.semanticTokens": true,
+      "completeUnimported": true,
+      "deepCompletion": true,
+      "matcher": "fuzzy",
+      "symbolMatcher": "fuzzy",
+      "experimentalWorkspaceModule": true,
+      "analyses": {
+        "unusedparams": true,
+        "shadow": true,
+        "fieldalignment": false
+      },
+      "codelenses": {
+        "gc_details": false,
+        "generate": true,
+        "regenerate_cgo": true,
+        "test": true,
+        "tidy": true,
+        "upgrade_dependency": true,
+        "vendor": true
+      },
+      "env": {
+        "GO111MODULE": "on",
+        "GOPROXY": "https://proxy.golang.org,direct",
+        "GOSUMDB": "sum.golang.org"
+      }
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "golang.go",
+      "ms-vscode.vscode-json"
+    ]
+  }
+} 

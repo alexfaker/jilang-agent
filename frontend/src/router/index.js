@@ -69,12 +69,13 @@ const routes = [
     component: () => import('../views/auth/Login.vue'),
     meta: { guest: true }
   },
-  {
-    path: '/auth/register',
-    name: 'Register',
-    component: () => import('../views/auth/Register.vue'),
-    meta: { guest: true }
-  },
+  // 暂时注释掉不存在的注册页面
+  // {
+  //   path: '/auth/register',
+  //   name: 'Register',
+  //   component: () => import('../views/auth/Register.vue'),
+  //   meta: { guest: true }
+  // },
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',

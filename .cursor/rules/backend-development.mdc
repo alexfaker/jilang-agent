@@ -1,0 +1,384 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Go 后端开发规范
+
+## 概述
+
+本规范针对 JiLang Agent 项目的 Go 后端开发，基于 Gin 框架和 GORM ORM，提供全面的开发指导和最佳实践。
+
+## 项目架构
+
+### 分层架构
+```
+backend/
+├── api/                    # API层
+│   ├── handlers/          # HTTP请求处理器
+│   ├── middleware/        # 中间件
+│   └── routes/           # 路由配置
+├── models/               # 数据模型层
+├── pkg/                  # 基础设施层
+│   ├── database/        # 数据库连接
+│   └── logger/          # 日志工具
+├── config/              # 配置管理
+├── utils/               # 工具函数
+└── main.go              # 应用入口
+```
+
+## 核心文件引用
+
+### 应用入口和配置
+- 主程序: [main.go](mdc:backend/main.go)
+- 配置结构: [config.go](mdc:backend/config/config.go)
+- 开发配置: [config.development.json](mdc:backend/config/config.development.json)
+
+### 基础设施
+- 数据库连接: [database.go](mdc:backend/pkg/database/database.go)
+- GORM连接: [gorm.go](mdc:backend/pkg/database/gorm.go)
+- 日志工具: [logger.go](mdc:backend/pkg/logger/logger.go)
+
+### 路由和中间件
+- 路由配置: [gin_routes.go](mdc:backend/api/routes/gin_routes.go)
+- JWT认证中间件: [gin_auth.go](mdc:backend/api/middleware/gin_auth.go)
+- 日志中间件: [gin_logger.go](mdc:backend/api/middleware/gin_logger.go)
+
+### 数据模型
+- 用户模型: [user.go](mdc:backend/models/user.go)
+- 工作流模型: [workflow.go](mdc:backend/models/workflow.go)
+- 代理模型: [agent.go](mdc:backend/models/agent.go)
+- 执行记录: [execution.go](mdc:backend/models/execution.go)
+
+### API处理器
+- 认证处理: [gin_auth_handler.go](mdc:backend/api/handlers/gin_auth_handler.go)
+- 用户处理: [gin_user_handler.go](mdc:backend/api/handlers/gin_user_handler.go)
+- 工作流处理: [gin_workflow_handler.go](mdc:backend/api/handlers/gin_workflow_handler.go)
+- 代理处理: [gin_agent_handler.go](mdc:backend/api/handlers/gin_agent_handler.go)
+- 执行处理: [gin_execution_handler.go](mdc:backend/api/handlers/gin_execution_handler.go)
+- 统计处理: [gin_stats_handler.go](mdc:backend/api/handlers/gin_stats_handler.go)
+
+### 工具函数
+- 响应工具: [response.go](mdc:backend/utils/response.go)
+- JWT工具: [jwt.go](mdc:backend/utils/jwt.go)
+
+## 开发规范
+
+### 代码结构原则
+1. **分层清晰**: 严格按照 API层 -> 服务层 -> 数据层 的架构组织代码
+2. **单一职责**: 每个文件和函数只负责一个明确的功能
+3. **依赖注入**: 使用依赖注入模式，便于测试和维护
+4. **错误处理**: 统一的错误处理和响应格式
+
+### 命名约定
+- **包名**: 使用小写字母，简洁明了
+- **文件名**: 使用snake_case，如 `gin_auth_handler.go`
+- **结构体**: 使用PascalCase，如 `UserHandler`
+- **函数**: 公开函数使用PascalCase，私有函数使用camelCase
+- **常量**: 使用UPPER_SNAKE_CASE
+- **变量**: 使用camelCase
+
+### Handler 开发规范
+
+#### 结构体定义
+```go
+type UserHandler struct {
+    db     *gorm.DB
+    logger *zap.Logger
+}
+
+func NewUserHandler(db *gorm.DB, logger *zap.Logger) *UserHandler {
+    return &UserHandler{
+        db:     db,
+        logger: logger,
+    }
+}
+```
+
+#### 方法签名
+```go
+func (h *UserHandler) GetUser(c *gin.Context) {
+    // 实现逻辑
+}
+```
+
+#### 错误处理
+```go
+if err != nil {
+    h.logger.Error("操作失败", zap.Error(err))
+    utils.ErrorResponse(c, http.StatusInternalServerError, "内部服务器错误")
+    return
+}
+```
+
+#### 响应格式
+```go
+// 成功响应
+utils.SuccessResponse(c, data)
+
+// 错误响应
+utils.ErrorResponse(c, http.StatusBadRequest, "参数错误")
+
+// 分页响应
+utils.PaginatedResponse(c, data, total, page, pageSize)
+```
+
+### 模型开发规范
+
+#### GORM 模型定义
+```go
+type User struct {
+    ID        uint      `json:"id" gorm:"primaryKey"`
+    Username  string    `json:"username" gorm:"uniqueIndex;not null"`
+    Email     string    `json:"email" gorm:"uniqueIndex;not null"`
+    Password  string    `json:"-" gorm:"not null"`
+    CreatedAt time.Time `json:"created_at"`
+    UpdatedAt time.Time `json:"updated_at"`
+}
+```
+
+#### 模型方法
+```go
+func (u *User) BeforeCreate(tx *gorm.DB) error {
+    // 创建前的钩子函数
+    return nil
+}
+
+func (u *User) TableName() string {
+    return "users"
+}
+```
+
+### 中间件开发规范
+
+#### JWT认证中间件
+```go
+func JWTAuth() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        // 认证逻辑
+        c.Next()
+    }
+}
+```
+
+#### 日志中间件
+```go
+func Logger(logger *zap.Logger) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        // 日志记录逻辑
+        c.Next()
+    }
+}
+```
+
+### 数据库操作规范
+
+#### 查询操作
+```go
+func (h *UserHandler) GetUsers(c *gin.Context) {
+    var users []models.User
+    
+    result := h.db.Find(&users)
+    if result.Error != nil {
+        h.logger.Error("查询用户失败", zap.Error(result.Error))
+        utils.ErrorResponse(c, http.StatusInternalServerError, "查询失败")
+        return
+    }
+    
+    utils.SuccessResponse(c, users)
+}
+```
+
+#### 创建操作
+```go
+func (h *UserHandler) CreateUser(c *gin.Context) {
+    var req CreateUserRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        utils.ErrorResponse(c, http.StatusBadRequest, "参数错误")
+        return
+    }
+    
+    user := models.User{
+        Username: req.Username,
+        Email:    req.Email,
+        Password: req.Password, // 应该加密
+    }
+    
+    if err := h.db.Create(&user).Error; err != nil {
+        h.logger.Error("创建用户失败", zap.Error(err))
+        utils.ErrorResponse(c, http.StatusInternalServerError, "创建失败")
+        return
+    }
+    
+    utils.SuccessResponse(c, user)
+}
+```
+
+### 安全最佳实践
+
+#### 密码处理
+```go
+import "golang.org/x/crypto/bcrypt"
+
+func HashPassword(password string) (string, error) {
+    bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+    return string(bytes), err
+}
+
+func CheckPasswordHash(password, hash string) bool {
+    err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+    return err == nil
+}
+```
+
+#### 输入验证
+```go
+type CreateUserRequest struct {
+    Username string `json:"username" binding:"required,min=3,max=50"`
+    Email    string `json:"email" binding:"required,email"`
+    Password string `json:"password" binding:"required,min=6"`
+}
+```
+
+#### SQL注入防护
+- 始终使用GORM的参数化查询
+- 避免字符串拼接构建SQL
+- 对用户输入进行严格验证
+
+### 日志记录规范
+
+#### 日志级别
+- **Debug**: 详细的调试信息
+- **Info**: 一般信息，如请求处理
+- **Warn**: 警告信息，如参数错误
+- **Error**: 错误信息，如数据库操作失败
+- **Fatal**: 致命错误，导致程序退出
+
+#### 日志格式
+```go
+h.logger.Info("用户登录成功",
+    zap.String("username", username),
+    zap.String("ip", c.ClientIP()),
+    zap.Time("timestamp", time.Now()),
+)
+```
+
+### 测试规范
+
+#### 单元测试
+```go
+func TestUserHandler_GetUser(t *testing.T) {
+    // 测试逻辑
+}
+```
+
+#### 集成测试
+```go
+func TestUserAPI(t *testing.T) {
+    // API集成测试
+}
+```
+
+### 性能优化
+
+#### 数据库优化
+- 合理使用索引
+- 避免N+1查询问题
+- 使用预加载(Preload)优化关联查询
+- 实现数据库连接池
+
+#### 缓存策略
+- Redis缓存热点数据
+- 实现缓存失效策略
+- 使用缓存预热
+
+### 错误处理最佳实践
+
+#### 自定义错误类型
+```go
+type AppError struct {
+    Code    int    `json:"code"`
+    Message string `json:"message"`
+    Details string `json:"details,omitempty"`
+}
+
+func (e *AppError) Error() string {
+    return e.Message
+}
+```
+
+#### 错误包装
+```go
+import "github.com/pkg/errors"
+
+if err != nil {
+    return errors.Wrap(err, "用户创建失败")
+}
+```
+
+### 配置管理
+
+#### 环境变量
+```go
+type Config struct {
+    Database DatabaseConfig `json:"database"`
+    Server   ServerConfig   `json:"server"`
+    JWT      JWTConfig      `json:"jwt"`
+}
+```
+
+#### 配置验证
+```go
+func (c *Config) Validate() error {
+    if c.Database.Host == "" {
+        return errors.New("数据库主机不能为空")
+    }
+    return nil
+}
+```
+
+## 开发工具和命令
+
+### 常用命令
+```bash
+# 运行应用
+go run main.go
+
+# 构建应用
+go build -o jilang-agent main.go
+
+# 运行测试
+go test ./...
+
+# 代码格式化
+go fmt ./...
+
+# 代码检查
+golangci-lint run
+```
+
+### 依赖管理
+```bash
+# 添加依赖
+go get github.com/gin-gonic/gin
+
+# 更新依赖
+go mod tidy
+
+# 查看依赖
+go mod graph
+```
+
+## 部署注意事项
+
+### 环境配置
+- 生产环境使用环境变量覆盖配置
+- 敏感信息不要硬编码
+- 实现优雅关闭
+
+### 监控和日志
+- 实现健康检查端点
+- 配置日志轮转
+- 集成监控系统
+
+参考 [项目架构总览](mdc:.cursor/rules/project-overview.mdc) 了解整体项目结构。

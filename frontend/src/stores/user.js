@@ -26,6 +26,10 @@ export const useUserStore = defineStore('user', {
         this.isAuthenticated = true;
         localStorage.setItem('token', response.token);
         localStorage.setItem('user', JSON.stringify(response.user));
+        
+        // 登录成功后同步设置
+        this.syncSettingsAfterLogin();
+        
         return response;
       } catch (error) {
         this.error = error.message || '登录失败';
@@ -45,6 +49,10 @@ export const useUserStore = defineStore('user', {
         this.isAuthenticated = true;
         localStorage.setItem('token', response.token);
         localStorage.setItem('user', JSON.stringify(response.user));
+        
+        // 注册成功后同步设置
+        this.syncSettingsAfterLogin();
+        
         return response;
       } catch (error) {
         this.error = error.message || '注册失败';
@@ -141,6 +149,21 @@ export const useUserStore = defineStore('user', {
           localStorage.removeItem('user');
           localStorage.removeItem('token');
         }
+      }
+    },
+
+    // 登录后同步设置的辅助方法
+    syncSettingsAfterLogin() {
+      try {
+        // 动态导入settings store以避免循环依赖
+        import('./settings').then(({ useSettingsStore }) => {
+          const settingsStore = useSettingsStore();
+          settingsStore.fetchSettings().catch(error => {
+            console.warn('登录后同步设置失败:', error.message);
+          });
+        });
+      } catch (error) {
+        console.warn('无法同步设置:', error.message);
       }
     }
   }

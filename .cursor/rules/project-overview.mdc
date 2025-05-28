@@ -1,0 +1,130 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# JiLang Agent 项目架构总览
+
+## 项目简介
+
+JiLang Agent 是一个强大的AI代理工作流管理系统，采用前后端分离架构，支持用户认证、工作流管理、执行历史、代理市场和统计分析等功能。
+
+## 技术栈
+
+### 后端
+- **语言**: Go 1.20+
+- **框架**: Gin (HTTP路由)
+- **ORM**: GORM (数据库操作)
+- **数据库**: MySQL/PostgreSQL
+- **认证**: JWT
+- **日志**: Zap
+
+### 前端
+- **框架**: Vue 3 + Composition API
+- **构建工具**: Vite
+- **样式**: Tailwind CSS
+- **状态管理**: Pinia
+- **路由**: Vue Router
+- **HTTP客户端**: Axios
+
+## 项目结构
+
+```
+jilang-agent/
+├── backend/                 # Go后端服务
+│   ├── api/                # API层
+│   │   ├── handlers/       # 请求处理器
+│   │   ├── middleware/     # 中间件
+│   │   └── routes/         # 路由定义
+│   ├── config/             # 配置管理
+│   ├── models/             # 数据模型
+│   ├── pkg/                # 工具包
+│   │   ├── database/       # 数据库连接
+│   │   └── logger/         # 日志工具
+│   ├── utils/              # 工具函数
+│   └── main.go             # 应用入口
+├── frontend/               # Vue.js前端
+│   ├── src/
+│   │   ├── api/            # API调用封装
+│   │   ├── components/     # Vue组件
+│   │   ├── router/         # 路由管理
+│   │   ├── stores/         # Pinia状态管理
+│   │   ├── utils/          # 工具函数
+│   │   └── views/          # 页面视图
+│   └── package.json
+└── README.md               # 项目文档
+```
+
+## 核心文件引用
+
+### 后端核心文件
+- 应用入口: [main.go](mdc:backend/main.go)
+- 配置管理: [config.go](mdc:backend/config/config.go)
+- 数据库连接: [database.go](mdc:backend/pkg/database/database.go)
+- 路由配置: [routes.go](mdc:backend/api/routes/routes.go)
+
+### 数据模型
+- 用户模型: [user.go](mdc:backend/models/user.go)
+- 工作流模型: [workflow.go](mdc:backend/models/workflow.go)
+- 代理模型: [agent.go](mdc:backend/models/agent.go)
+- 执行记录模型: [execution.go](mdc:backend/models/execution.go)
+
+### API处理器
+- 认证处理: [auth.go](mdc:backend/api/handlers/auth.go)
+- 用户处理: [user.go](mdc:backend/api/handlers/user.go)
+- 工作流处理: [workflow.go](mdc:backend/api/handlers/workflow.go)
+- 代理处理: [agent.go](mdc:backend/api/handlers/agent.go)
+- 执行处理: [execution.go](mdc:backend/api/handlers/execution.go)
+- 统计处理: [stats.go](mdc:backend/api/handlers/stats.go)
+
+### 前端核心文件
+- 应用入口: [main.js](mdc:frontend/src/main.js)
+- 根组件: [App.vue](mdc:frontend/src/App.vue)
+- 路由配置: [index.js](mdc:frontend/src/router/index.js)
+- API封装: [index.js](mdc:frontend/src/api/index.js)
+
+### 主要页面视图
+- 登录页面: [LoginView.vue](mdc:frontend/src/views/LoginView.vue)
+- 仪表盘: [DashboardView.vue](mdc:frontend/src/views/DashboardView.vue)
+- 工作流管理: [WorkflowView.vue](mdc:frontend/src/views/WorkflowView.vue)
+- 代理市场: [AgentView.vue](mdc:frontend/src/views/AgentView.vue)
+- 执行历史: [ExecutionView.vue](mdc:frontend/src/views/ExecutionView.vue)
+
+### 配置文件
+- Go模块: [go.mod](mdc:backend/go.mod)
+- 前端依赖: [package.json](mdc:frontend/package.json)
+- Vite配置: [vite.config.js](mdc:frontend/vite.config.js)
+- Tailwind配置: [tailwind.config.js](mdc:frontend/tailwind.config.js)
+
+## 开发规范
+
+### 代码组织
+- 后端采用分层架构：API层 -> 服务层 -> 数据层
+- 前端采用组件化开发，遵循Vue 3 Composition API规范
+- 统一的错误处理和响应格式
+- 完善的日志记录和监控
+
+### 命名约定
+- Go: 使用驼峰命名法，公开函数首字母大写
+- Vue: 组件使用PascalCase，文件名使用kebab-case
+- API端点使用RESTful风格
+- 数据库表名使用snake_case
+
+### 安全考虑
+- JWT token认证和授权
+- 输入验证和SQL注入防护
+- CORS配置
+- 敏感信息环境变量管理
+
+## 开发状态
+
+参考 [开发进度文档](mdc:DEVELOPMENT_PROGRESS.md) 了解当前实现状态和下一步计划。
+
+## 使用指南
+
+在开发过程中，请参考相应的专门规则文件：
+- 后端开发: 参考 `backend-development.mdc`
+- 前端开发: 参考 `frontend-development.mdc`
+- API设计: 参考 `api-design.mdc`
+- 数据库设计: 参考 `database-models.mdc`
+- 测试部署: 参考 `testing-deployment.mdc`

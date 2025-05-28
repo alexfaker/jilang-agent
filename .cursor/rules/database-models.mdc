@@ -1,0 +1,741 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# 数据库和模型设计规范
+
+## 概述
+
+本规范定义了 JiLang Agent 项目的数据库设计标准和 GORM 模型开发规范，包括表结构设计、模型定义、关联关系、数据迁移等方面的最佳实践。
+
+## 数据库架构
+
+### 技术栈
+- **数据库**: MySQL 8.0+ / PostgreSQL 13+
+- **ORM**: GORM v2
+- **连接池**: 内置连接池管理
+- **迁移**: GORM AutoMigrate
+
+### 数据库连接
+
+参考数据库配置: [database.go](mdc:backend/pkg/database/database.go)
+参考GORM连接: [gorm.go](mdc:backend/pkg/database/gorm.go)
+
+```go
+// 数据库配置
+type DatabaseConfig struct {
+    Host     string `json:"host"`
+    Port     int    `json:"port"`
+    Username string `json:"username"`
+    Password string `json:"password"`
+    Database string `json:"database"`
+    Charset  string `json:"charset"`
+    SSLMode  string `json:"ssl_mode"`
+}
+
+// GORM 连接配置
+func NewGormDB(config *DatabaseConfig) (*gorm.DB, error) {
+    dsn := buildDSN(config)
+    db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+        Logger: logger.Default.LogMode(logger.Info),
+        NamingStrategy: schema.NamingStrategy{
+            TablePrefix:   "",
+            SingularTable: false,
+        },
+    })
+    return db, err
+}
+```
+
+## 核心数据模型
+
+### 用户模型
+
+参考用户模型: [user.go](mdc:backend/models/user.go)
+
+```go
+type User struct {
+    ID        uint      `json:"id" gorm:"primaryKey"`
+    Username  string    `json:"username" gorm:"uniqueIndex;size:50;not null"`
+    Email     string    `json:"email" gorm:"uniqueIndex;size:100;not null"`
+    Password  string    `json:"-" gorm:"size:255;not null"`
+    Role      string    `json:"role" gorm:"size:20;default:user"`
+    Avatar    string    `json:"avatar" gorm:"size:255"`
+    IsActive  bool      `json:"is_active" gorm:"default:true"`
+    CreatedAt time.Time `json:"created_at"`
+    UpdatedAt time.Time `json:"updated_at"`
+    DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+    
+    // 关联关系
+    Workflows []Workflow `json:"workflows,omitempty" gorm:"foreignKey:UserID"`
+    Agents    []Agent    `json:"agents,omitempty" gorm:"foreignKey:UserID"`
+}
+
+func (User) TableName() string {
+    return "users"
+}
+```
+
+### 工作流模型
+
+参考工作流模型: [workflow.go](mdc:backend/models/workflow.go)
+
+```go
+type Workflow struct {
+    ID          uint      `json:"id" gorm:"primaryKey"`
+    Name        string    `json:"name" gorm:"size:100;not null"`
+    Description string    `json:"description" gorm:"type:text"`
+    Config      string    `json:"config" gorm:"type:longtext;not null"`
+    IsPublic    bool      `json:"is_public" gorm:"default:false"`
+    Status      string    `json:"status" gorm:"size:20;default:draft"`
+    UserID      uint      `json:"user_id" gorm:"not null;index"`
+    CreatedAt   time.Time `json:"created_at"`
+    UpdatedAt   time.Time `json:"updated_at"`
+    DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
+    
+    // 关联关系
+    User       User                `json:"user,omitempty" gorm:"foreignKey:UserID"`
+    Executions []WorkflowExecution `json:"executions,omitempty" gorm:"foreignKey:WorkflowID"`
+}
+
+func (Workflow) TableName() string {
+    return "workflows"
+}
+```
+
+### 代理模型
+
+参考代理模型: [agent.go](mdc:backend/models/agent.go)
+
+```go
+type Agent struct {
+    ID          uint      `json:"id" gorm:"primaryKey"`
+    Name        string    `json:"name" gorm:"size:100;not null"`
+    Description string    `json:"description" gorm:"type:text"`
+    Category    string    `json:"category" gorm:"size:50;not null"`
+    Config      string    `json:"config" gorm:"type:longtext;not null"`
+    IsPublic    bool      `json:"is_public" gorm:"default:false"`
+    Status      string    `json:"status" gorm:"size:20;default:active"`
+    UserID      uint      `json:"user_id" gorm:"not null;index"`
+    CreatedAt   time.Time `json:"created_at"`
+    UpdatedAt   time.Time `json:"updated_at"`
+    DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
+    
+    // 关联关系
+    User User `json:"user,omitempty" gorm:"foreignKey:UserID"`
+}
+
+func (Agent) TableName() string {
+    return "agents"
+}
+```
+
+### 执行记录模型
+
+参考执行记录模型: [execution.go](mdc:backend/models/execution.go)
+
+```go
+type WorkflowExecution struct {
+    ID         uint      `json:"id" gorm:"primaryKey"`
+    WorkflowID uint      `json:"workflow_id" gorm:"not null;index"`
+    UserID     uint      `json:"user_id" gorm:"not null;index"`
+    Status     string    `json:"status" gorm:"size:20;not null"`
+    Input      string    `json:"input" gorm:"type:longtext"`
+    Output     string    `json:"output" gorm:"type:longtext"`
+    Error      string    `json:"error" gorm:"type:text"`
+    StartedAt  time.Time `json:"started_at"`
+    FinishedAt *time.Time `json:"finished_at"`
+    CreatedAt  time.Time `json:"created_at"`
+    UpdatedAt  time.Time `json:"updated_at"`
+    
+    // 关联关系
+    Workflow Workflow `json:"workflow,omitempty" gorm:"foreignKey:WorkflowID"`
+    User     User     `json:"user,omitempty" gorm:"foreignKey:UserID"`
+}
+
+func (WorkflowExecution) TableName() string {
+    return "workflow_executions"
+}
+```
+
+## 模型设计规范
+
+### 基础字段规范
+
+#### 主键设计
+```go
+// 使用自增主键
+ID uint `json:"id" gorm:"primaryKey"`
+```
+
+#### 时间戳字段
+```go
+// 标准时间戳字段
+CreatedAt time.Time `json:"created_at"`
+UpdatedAt time.Time `json:"updated_at"`
+
+// 软删除字段
+DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+```
+
+#### 字符串字段
+```go
+// 短字符串字段
+Name string `json:"name" gorm:"size:100;not null"`
+
+// 长文本字段
+Description string `json:"description" gorm:"type:text"`
+
+// 超长文本字段
+Config string `json:"config" gorm:"type:longtext"`
+```
+
+#### 布尔字段
+```go
+// 布尔字段带默认值
+IsActive bool `json:"is_active" gorm:"default:true"`
+IsPublic bool `json:"is_public" gorm:"default:false"`
+```
+
+#### 枚举字段
+```go
+// 状态枚举
+Status string `json:"status" gorm:"size:20;default:active"`
+
+// 角色枚举
+Role string `json:"role" gorm:"size:20;default:user"`
+```
+
+### 索引设计规范
+
+#### 单列索引
+```go
+// 唯一索引
+Username string `json:"username" gorm:"uniqueIndex;size:50"`
+Email    string `json:"email" gorm:"uniqueIndex;size:100"`
+
+// 普通索引
+UserID uint `json:"user_id" gorm:"index"`
+Status string `json:"status" gorm:"index"`
+```
+
+#### 复合索引
+```go
+type Workflow struct {
+    UserID uint   `json:"user_id" gorm:"index:idx_user_status"`
+    Status string `json:"status" gorm:"index:idx_user_status"`
+}
+```
+
+#### 全文索引
+```go
+// MySQL 全文索引
+type Article struct {
+    Title   string `json:"title" gorm:"index:,class:FULLTEXT"`
+    Content string `json:"content" gorm:"index:,class:FULLTEXT"`
+}
+```
+
+### 关联关系设计
+
+#### 一对多关系
+```go
+// 用户拥有多个工作流
+type User struct {
+    ID        uint       `json:"id" gorm:"primaryKey"`
+    Workflows []Workflow `json:"workflows" gorm:"foreignKey:UserID"`
+}
+
+type Workflow struct {
+    ID     uint `json:"id" gorm:"primaryKey"`
+    UserID uint `json:"user_id" gorm:"not null"`
+    User   User `json:"user" gorm:"foreignKey:UserID"`
+}
+```
+
+#### 多对多关系
+```go
+// 用户和角色多对多关系
+type User struct {
+    ID    uint   `json:"id" gorm:"primaryKey"`
+    Roles []Role `json:"roles" gorm:"many2many:user_roles;"`
+}
+
+type Role struct {
+    ID    uint   `json:"id" gorm:"primaryKey"`
+    Users []User `json:"users" gorm:"many2many:user_roles;"`
+}
+```
+
+#### 一对一关系
+```go
+// 用户和用户配置一对一关系
+type User struct {
+    ID      uint        `json:"id" gorm:"primaryKey"`
+    Profile UserProfile `json:"profile" gorm:"foreignKey:UserID"`
+}
+
+type UserProfile struct {
+    ID     uint `json:"id" gorm:"primaryKey"`
+    UserID uint `json:"user_id" gorm:"uniqueIndex"`
+    Bio    string `json:"bio"`
+}
+```
+
+### 模型方法规范
+
+#### 钩子方法
+```go
+// 创建前钩子
+func (u *User) BeforeCreate(tx *gorm.DB) error {
+    if u.Password != "" {
+        hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+        if err != nil {
+            return err
+        }
+        u.Password = string(hashedPassword)
+    }
+    return nil
+}
+
+// 更新前钩子
+func (u *User) BeforeUpdate(tx *gorm.DB) error {
+    if tx.Statement.Changed("Password") && u.Password != "" {
+        hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+        if err != nil {
+            return err
+        }
+        u.Password = string(hashedPassword)
+    }
+    return nil
+}
+```
+
+#### 自定义方法
+```go
+// 验证密码
+func (u *User) CheckPassword(password string) bool {
+    err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+    return err == nil
+}
+
+// 获取显示名称
+func (u *User) GetDisplayName() string {
+    if u.Username != "" {
+        return u.Username
+    }
+    return u.Email
+}
+
+// 是否为管理员
+func (u *User) IsAdmin() bool {
+    return u.Role == "admin"
+}
+```
+
+#### 作用域方法
+```go
+// 活跃用户作用域
+func (u *User) ActiveUsers(db *gorm.DB) *gorm.DB {
+    return db.Where("is_active = ?", true)
+}
+
+// 公开工作流作用域
+func (w *Workflow) PublicWorkflows(db *gorm.DB) *gorm.DB {
+    return db.Where("is_public = ?", true)
+}
+```
+
+## 数据库操作规范
+
+### 查询操作
+
+#### 基础查询
+```go
+// 查询所有记录
+var users []User
+db.Find(&users)
+
+// 条件查询
+var user User
+db.Where("username = ?", "john").First(&user)
+
+// 多条件查询
+db.Where("is_active = ? AND role = ?", true, "user").Find(&users)
+```
+
+#### 预加载查询
+```go
+// 预加载关联数据
+var users []User
+db.Preload("Workflows").Find(&users)
+
+// 条件预加载
+db.Preload("Workflows", "is_public = ?", true).Find(&users)
+
+// 嵌套预加载
+db.Preload("Workflows.Executions").Find(&users)
+```
+
+#### 分页查询
+```go
+// 分页查询
+var users []User
+var total int64
+
+db.Model(&User{}).Count(&total)
+db.Offset((page - 1) * pageSize).Limit(pageSize).Find(&users)
+```
+
+#### 聚合查询
+```go
+// 计数
+var count int64
+db.Model(&User{}).Where("is_active = ?", true).Count(&count)
+
+// 求和
+var total float64
+db.Model(&Order{}).Select("SUM(amount)").Scan(&total)
+
+// 分组统计
+var results []struct {
+    Role  string
+    Count int64
+}
+db.Model(&User{}).Select("role, COUNT(*) as count").Group("role").Scan(&results)
+```
+
+### 创建操作
+
+#### 单条记录创建
+```go
+user := User{
+    Username: "john_doe",
+    Email:    "john@example.com",
+    Password: "password123",
+}
+
+result := db.Create(&user)
+if result.Error != nil {
+    return result.Error
+}
+```
+
+#### 批量创建
+```go
+users := []User{
+    {Username: "user1", Email: "user1@example.com"},
+    {Username: "user2", Email: "user2@example.com"},
+}
+
+result := db.Create(&users)
+if result.Error != nil {
+    return result.Error
+}
+```
+
+#### 忽略冲突创建
+```go
+// MySQL
+db.Clauses(clause.OnConflict{DoNothing: true}).Create(&user)
+
+// PostgreSQL
+db.Clauses(clause.OnConflict{
+    Columns:   []clause.Column{{Name: "email"}},
+    DoNothing: true,
+}).Create(&user)
+```
+
+### 更新操作
+
+#### 单字段更新
+```go
+// 更新单个字段
+db.Model(&user).Update("is_active", false)
+
+// 更新多个字段
+db.Model(&user).Updates(User{
+    Username: "new_username",
+    Email:    "new@example.com",
+})
+
+// 使用 map 更新
+db.Model(&user).Updates(map[string]interface{}{
+    "username":  "new_username",
+    "is_active": false,
+})
+```
+
+#### 批量更新
+```go
+// 批量更新
+db.Model(&User{}).Where("role = ?", "user").Update("is_active", false)
+
+// 条件批量更新
+db.Model(&User{}).Where("created_at < ?", time.Now().AddDate(0, -6, 0)).Updates(map[string]interface{}{
+    "is_active": false,
+    "updated_at": time.Now(),
+})
+```
+
+### 删除操作
+
+#### 软删除
+```go
+// 软删除（如果模型包含 DeletedAt 字段）
+db.Delete(&user)
+
+// 批量软删除
+db.Where("is_active = ?", false).Delete(&User{})
+```
+
+#### 硬删除
+```go
+// 硬删除
+db.Unscoped().Delete(&user)
+
+// 永久删除所有软删除记录
+db.Unscoped().Where("deleted_at IS NOT NULL").Delete(&User{})
+```
+
+## 事务处理
+
+### 手动事务
+```go
+func TransferMoney(fromUserID, toUserID uint, amount float64) error {
+    return db.Transaction(func(tx *gorm.DB) error {
+        // 扣除发送方余额
+        if err := tx.Model(&User{}).Where("id = ?", fromUserID).
+            Update("balance", gorm.Expr("balance - ?", amount)).Error; err != nil {
+            return err
+        }
+        
+        // 增加接收方余额
+        if err := tx.Model(&User{}).Where("id = ?", toUserID).
+            Update("balance", gorm.Expr("balance + ?", amount)).Error; err != nil {
+            return err
+        }
+        
+        // 创建转账记录
+        transfer := Transfer{
+            FromUserID: fromUserID,
+            ToUserID:   toUserID,
+            Amount:     amount,
+        }
+        return tx.Create(&transfer).Error
+    })
+}
+```
+
+### 嵌套事务
+```go
+func ComplexOperation() error {
+    return db.Transaction(func(tx *gorm.DB) error {
+        // 第一步操作
+        if err := tx.Create(&user).Error; err != nil {
+            return err
+        }
+        
+        // 嵌套事务
+        return tx.Transaction(func(tx2 *gorm.DB) error {
+            // 第二步操作
+            return tx2.Create(&profile).Error
+        })
+    })
+}
+```
+
+## 数据迁移
+
+### 自动迁移
+```go
+func AutoMigrate(db *gorm.DB) error {
+    return db.AutoMigrate(
+        &User{},
+        &Workflow{},
+        &Agent{},
+        &WorkflowExecution{},
+    )
+}
+```
+
+### 手动迁移
+```go
+// 创建表
+func CreateUsersTable(db *gorm.DB) error {
+    return db.Exec(`
+        CREATE TABLE users (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(50) NOT NULL UNIQUE,
+            email VARCHAR(100) NOT NULL UNIQUE,
+            password VARCHAR(255) NOT NULL,
+            role VARCHAR(20) DEFAULT 'user',
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP NULL,
+            INDEX idx_users_deleted_at (deleted_at)
+        )
+    `).Error
+}
+
+// 添加列
+func AddAvatarColumn(db *gorm.DB) error {
+    return db.Exec("ALTER TABLE users ADD COLUMN avatar VARCHAR(255)").Error
+}
+
+// 创建索引
+func CreateUserEmailIndex(db *gorm.DB) error {
+    return db.Exec("CREATE INDEX idx_users_email ON users(email)").Error
+}
+```
+
+## 性能优化
+
+### 查询优化
+```go
+// 选择特定字段
+db.Select("id, username, email").Find(&users)
+
+// 使用原生 SQL
+var users []User
+db.Raw("SELECT * FROM users WHERE is_active = ?", true).Scan(&users)
+
+// 批量查询
+var userIDs []uint
+db.Model(&User{}).Pluck("id", &userIDs)
+```
+
+### 连接池配置
+```go
+func ConfigureConnectionPool(db *gorm.DB) error {
+    sqlDB, err := db.DB()
+    if err != nil {
+        return err
+    }
+    
+    // 设置最大打开连接数
+    sqlDB.SetMaxOpenConns(100)
+    
+    // 设置最大空闲连接数
+    sqlDB.SetMaxIdleConns(10)
+    
+    // 设置连接最大生存时间
+    sqlDB.SetConnMaxLifetime(time.Hour)
+    
+    return nil
+}
+```
+
+### 缓存策略
+```go
+// Redis 缓存用户信息
+func GetUserWithCache(userID uint) (*User, error) {
+    cacheKey := fmt.Sprintf("user:%d", userID)
+    
+    // 尝试从缓存获取
+    cached, err := redis.Get(cacheKey)
+    if err == nil {
+        var user User
+        json.Unmarshal([]byte(cached), &user)
+        return &user, nil
+    }
+    
+    // 从数据库查询
+    var user User
+    if err := db.First(&user, userID).Error; err != nil {
+        return nil, err
+    }
+    
+    // 写入缓存
+    userJSON, _ := json.Marshal(user)
+    redis.Set(cacheKey, userJSON, time.Hour)
+    
+    return &user, nil
+}
+```
+
+## 数据验证
+
+### 模型验证
+```go
+func (u *User) Validate() error {
+    if u.Username == "" {
+        return errors.New("用户名不能为空")
+    }
+    
+    if len(u.Username) < 3 {
+        return errors.New("用户名长度至少3个字符")
+    }
+    
+    if !isValidEmail(u.Email) {
+        return errors.New("邮箱格式不正确")
+    }
+    
+    return nil
+}
+```
+
+### 数据库约束
+```go
+// 唯一约束
+type User struct {
+    Username string `gorm:"uniqueIndex"`
+    Email    string `gorm:"uniqueIndex"`
+}
+
+// 检查约束（MySQL 8.0.16+）
+type Product struct {
+    Price float64 `gorm:"check:price > 0"`
+    Stock int     `gorm:"check:stock >= 0"`
+}
+```
+
+## 测试规范
+
+### 模型测试
+```go
+func TestUserModel(t *testing.T) {
+    // 设置测试数据库
+    db := setupTestDB()
+    
+    // 创建用户
+    user := User{
+        Username: "testuser",
+        Email:    "test@example.com",
+        Password: "password123",
+    }
+    
+    err := db.Create(&user).Error
+    assert.NoError(t, err)
+    assert.NotZero(t, user.ID)
+    
+    // 验证密码加密
+    assert.NotEqual(t, "password123", user.Password)
+    assert.True(t, user.CheckPassword("password123"))
+}
+```
+
+### 数据库集成测试
+```go
+func TestUserRepository(t *testing.T) {
+    db := setupTestDB()
+    repo := NewUserRepository(db)
+    
+    // 测试创建用户
+    user, err := repo.Create(&User{
+        Username: "testuser",
+        Email:    "test@example.com",
+    })
+    assert.NoError(t, err)
+    assert.NotNil(t, user)
+    
+    // 测试查询用户
+    found, err := repo.GetByEmail("test@example.com")
+    assert.NoError(t, err)
+    assert.Equal(t, user.ID, found.ID)
+}
+```
+
+参考 [项目架构总览](mdc:.cursor/rules/project-overview.mdc) 了解整体项目结构。

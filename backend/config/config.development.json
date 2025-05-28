@@ -13,16 +13,23 @@
       "allowedMethods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       "allowedHeaders": ["Content-Type", "Authorization", "X-Requested-With"],
       "maxAge": 300
-    }
+    },
+    "serveStatic": true,
+    "staticDir": "staticfiles"
   },
   "database": {
     "driver": "mysql",
     "host": "1.95.74.46",
     "port": 3306,
-    "user": "root",
-    "password": "password",
-    "database": "workflow_platform",
-    "sslMode": "disable"
+    "user": "workflow",
+    "password": "workflowdev",
+    "database": "jilang_agent",
+    "sslMode": "disable",
+    "logLevel": "info",
+    "maxOpenConns": 25,
+    "maxIdleConns": 10,
+    "connMaxIdleTime": 300,
+    "connMaxLifetime": 3600
   },
   "auth": {
     "jwtSecret": "dev-secret-key-change-in-production",

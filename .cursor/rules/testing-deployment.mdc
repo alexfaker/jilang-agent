@@ -1,0 +1,1152 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# 测试和部署规范
+
+## 概述
+
+本规范定义了 JiLang Agent 项目的测试策略、持续集成/持续部署(CI/CD)流程和生产环境部署的最佳实践，确保代码质量和系统稳定性。
+
+## 测试策略
+
+### 测试金字塔
+
+```
+    /\
+   /  \     E2E Tests (端到端测试)
+  /____\    
+ /      \   Integration Tests (集成测试)
+/________\  Unit Tests (单元测试)
+```
+
+#### 测试比例建议
+- **单元测试**: 70% - 快速、独立、覆盖核心业务逻辑
+- **集成测试**: 20% - 验证组件间交互
+- **端到端测试**: 10% - 验证完整用户流程
+
+### 后端测试规范
+
+#### 单元测试
+
+##### 测试文件组织
+```
+backend/
+├── models/
+│   ├── user.go
+│   └── user_test.go
+├── api/handlers/
+│   ├── auth_handler.go
+│   └── auth_handler_test.go
+└── utils/
+    ├── jwt.go
+    └── jwt_test.go
+```
+
+##### 测试命名约定
+```go
+// 测试函数命名: Test + 被测试函数名 + 测试场景
+func TestUserHandler_CreateUser_Success(t *testing.T) {}
+func TestUserHandler_CreateUser_InvalidInput(t *testing.T) {}
+func TestUserHandler_CreateUser_DatabaseError(t *testing.T) {}
+```
+
+##### 测试结构模式 (AAA)
+```go
+func TestUserService_CreateUser_Success(t *testing.T) {
+    // Arrange (准备)
+    db := setupTestDB()
+    service := NewUserService(db)
+    user := &User{
+        Username: "testuser",
+        Email:    "test@example.com",
+        Password: "password123",
+    }
+    
+    // Act (执行)
+    result, err := service.CreateUser(user)
+    
+    // Assert (断言)
+    assert.NoError(t, err)
+    assert.NotNil(t, result)
+    assert.Equal(t, "testuser", result.Username)
+    assert.NotEmpty(t, result.ID)
+}
+```
+
+##### 模拟和依赖注入
+```go
+// 使用接口进行依赖注入
+type UserRepository interface {
+    Create(user *User) error
+    GetByEmail(email string) (*User, error)
+}
+
+type UserService struct {
+    repo UserRepository
+}
+
+// 测试中使用模拟对象
+func TestUserService_CreateUser_RepositoryError(t *testing.T) {
+    // 创建模拟仓库
+    mockRepo := &MockUserRepository{}
+    mockRepo.On("Create", mock.Anything).Return(errors.New("database error"))
+    
+    service := &UserService{repo: mockRepo}
+    
+    // 执行测试
+    _, err := service.CreateUser(&User{})
+    
+    // 验证
+    assert.Error(t, err)
+    assert.Contains(t, err.Error(), "database error")
+    mockRepo.AssertExpectations(t)
+}
+```
+
+##### 数据库测试
+```go
+func setupTestDB() *gorm.DB {
+    // 使用内存数据库进行测试
+    db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+    if err != nil {
+        panic("failed to connect database")
+    }
+    
+    // 自动迁移
+    db.AutoMigrate(&User{}, &Workflow{}, &Agent{})
+    
+    return db
+}
+
+func TestUserRepository_Create(t *testing.T) {
+    db := setupTestDB()
+    repo := NewUserRepository(db)
+    
+    user := &User{
+        Username: "testuser",
+        Email:    "test@example.com",
+    }
+    
+    err := repo.Create(user)
+    assert.NoError(t, err)
+    assert.NotZero(t, user.ID)
+    
+    // 验证数据库中的数据
+    var found User
+    db.First(&found, user.ID)
+    assert.Equal(t, user.Username, found.Username)
+}
+```
+
+#### 集成测试
+
+##### HTTP API 测试
+```go
+func TestUserAPI_Integration(t *testing.T) {
+    // 设置测试服务器
+    app := setupTestApp()
+    server := httptest.NewServer(app)
+    defer server.Close()
+    
+    // 测试用户注册
+    registerData := map[string]string{
+        "username": "testuser",
+        "email":    "test@example.com",
+        "password": "password123",
+    }
+    
+    body, _ := json.Marshal(registerData)
+    resp, err := http.Post(
+        server.URL+"/api/auth/register",
+        "application/json",
+        bytes.NewBuffer(body),
+    )
+    
+    assert.NoError(t, err)
+    assert.Equal(t, http.StatusCreated, resp.StatusCode)
+    
+    // 解析响应
+    var response map[string]interface{}
+    json.NewDecoder(resp.Body).Decode(&response)
+    assert.True(t, response["success"].(bool))
+    assert.NotEmpty(t, response["data"].(map[string]interface{})["token"])
+}
+```
+
+##### 数据库集成测试
+```go
+func TestWorkflowExecution_Integration(t *testing.T) {
+    db := setupTestDB()
+    
+    // 创建测试数据
+    user := &User{Username: "testuser", Email: "test@example.com"}
+    db.Create(user)
+    
+    workflow := &Workflow{
+        Name:   "Test Workflow",
+        Config: `{"steps": []}`,
+        UserID: user.ID,
+    }
+    db.Create(workflow)
+    
+    // 测试工作流执行
+    execution := &WorkflowExecution{
+        WorkflowID: workflow.ID,
+        UserID:     user.ID,
+        Status:     "running",
+        Input:      `{"test": "data"}`,
+    }
+    
+    err := db.Create(execution).Error
+    assert.NoError(t, err)
+    
+    // 验证关联查询
+    var result WorkflowExecution
+    db.Preload("Workflow").Preload("User").First(&result, execution.ID)
+    assert.Equal(t, workflow.Name, result.Workflow.Name)
+    assert.Equal(t, user.Username, result.User.Username)
+}
+```
+
+#### 性能测试
+
+##### 基准测试
+```go
+func BenchmarkUserService_CreateUser(b *testing.B) {
+    db := setupTestDB()
+    service := NewUserService(db)
+    
+    b.ResetTimer()
+    for i := 0; i < b.N; i++ {
+        user := &User{
+            Username: fmt.Sprintf("user%d", i),
+            Email:    fmt.Sprintf("user%d@example.com", i),
+            Password: "password123",
+        }
+        service.CreateUser(user)
+    }
+}
+
+func BenchmarkJWTGeneration(b *testing.B) {
+    user := &User{ID: 1, Username: "testuser"}
+    
+    b.ResetTimer()
+    for i := 0; i < b.N; i++ {
+        GenerateJWT(user)
+    }
+}
+```
+
+##### 负载测试
+```go
+func TestAPI_LoadTest(t *testing.T) {
+    if testing.Short() {
+        t.Skip("跳过负载测试")
+    }
+    
+    server := setupTestServer()
+    defer server.Close()
+    
+    // 并发请求测试
+    concurrency := 100
+    requests := 1000
+    
+    var wg sync.WaitGroup
+    results := make(chan int, requests)
+    
+    for i := 0; i < concurrency; i++ {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+            for j := 0; j < requests/concurrency; j++ {
+                resp, err := http.Get(server.URL + "/api/health")
+                if err != nil {
+                    results <- 0
+                } else {
+                    results <- resp.StatusCode
+                    resp.Body.Close()
+                }
+            }
+        }()
+    }
+    
+    wg.Wait()
+    close(results)
+    
+    // 统计结果
+    successCount := 0
+    for status := range results {
+        if status == 200 {
+            successCount++
+        }
+    }
+    
+    successRate := float64(successCount) / float64(requests)
+    assert.Greater(t, successRate, 0.95, "成功率应该大于95%")
+}
+```
+
+### 前端测试规范
+
+#### 单元测试 (Vue Test Utils + Vitest)
+
+##### 组件测试
+```javascript
+// tests/components/UserCard.test.js
+import { mount } from '@vue/test-utils'
+import { describe, it, expect } from 'vitest'
+import UserCard from '@/components/UserCard.vue'
+
+describe('UserCard', () => {
+  it('renders user information correctly', () => {
+    const user = {
+      id: 1,
+      username: 'john_doe',
+      email: 'john@example.com'
+    }
+    
+    const wrapper = mount(UserCard, {
+      props: { user }
+    })
+    
+    expect(wrapper.text()).toContain('john_doe')
+    expect(wrapper.text()).toContain('john@example.com')
+    expect(wrapper.find('[data-testid="user-avatar"]').exists()).toBe(true)
+  })
+  
+  it('emits edit event when edit button is clicked', async () => {
+    const user = { id: 1, username: 'john_doe' }
+    const wrapper = mount(UserCard, {
+      props: { user }
+    })
+    
+    await wrapper.find('[data-testid="edit-button"]').trigger('click')
+    
+    expect(wrapper.emitted('edit')).toBeTruthy()
+    expect(wrapper.emitted('edit')[0]).toEqual([user])
+  })
+})
+```
+
+##### Composables 测试
+```javascript
+// tests/composables/useApi.test.js
+import { describe, it, expect, vi } from 'vitest'
+import { useApi } from '@/composables/useApi'
+
+// 模拟 axios
+vi.mock('axios', () => ({
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+  }
+}))
+
+describe('useApi', () => {
+  it('handles successful API calls', async () => {
+    const mockData = { id: 1, name: 'Test' }
+    axios.get.mockResolvedValue({ data: mockData })
+    
+    const { data, loading, error, fetchData } = useApi()
+    
+    await fetchData('/api/test')
+    
+    expect(loading.value).toBe(false)
+    expect(error.value).toBe(null)
+    expect(data.value).toEqual(mockData)
+  })
+  
+  it('handles API errors', async () => {
+    const errorMessage = 'Network Error'
+    axios.get.mockRejectedValue(new Error(errorMessage))
+    
+    const { data, loading, error, fetchData } = useApi()
+    
+    await fetchData('/api/test')
+    
+    expect(loading.value).toBe(false)
+    expect(error.value).toBe(errorMessage)
+    expect(data.value).toBe(null)
+  })
+})
+```
+
+##### Store 测试
+```javascript
+// tests/stores/user.test.js
+import { setActivePinia, createPinia } from 'pinia'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { useUserStore } from '@/stores/user'
+
+describe('User Store', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+  
+  it('initializes with correct default state', () => {
+    const store = useUserStore()
+    
+    expect(store.user).toBe(null)
+    expect(store.token).toBe(null)
+    expect(store.isAuthenticated).toBe(false)
+  })
+  
+  it('handles login correctly', async () => {
+    const store = useUserStore()
+    const mockUser = { id: 1, username: 'john_doe' }
+    const mockToken = 'mock-jwt-token'
+    
+    // 模拟 API 调用
+    vi.spyOn(userApi, 'login').mockResolvedValue({
+      user: mockUser,
+      token: mockToken
+    })
+    
+    await store.login({ username: 'john_doe', password: 'password' })
+    
+    expect(store.user).toEqual(mockUser)
+    expect(store.token).toBe(mockToken)
+    expect(store.isAuthenticated).toBe(true)
+  })
+})
+```
+
+#### 端到端测试 (Playwright)
+
+##### 用户流程测试
+```javascript
+// tests/e2e/user-workflow.spec.js
+import { test, expect } from '@playwright/test'
+
+test.describe('User Workflow', () => {
+  test('user can register, login, and create workflow', async ({ page }) => {
+    // 注册新用户
+    await page.goto('/register')
+    await page.fill('[data-testid="username-input"]', 'testuser')
+    await page.fill('[data-testid="email-input"]', 'test@example.com')
+    await page.fill('[data-testid="password-input"]', 'password123')
+    await page.click('[data-testid="register-button"]')
+    
+    // 验证重定向到登录页
+    await expect(page).toHaveURL('/login')
+    
+    // 登录
+    await page.fill('[data-testid="username-input"]', 'testuser')
+    await page.fill('[data-testid="password-input"]', 'password123')
+    await page.click('[data-testid="login-button"]')
+    
+    // 验证重定向到仪表盘
+    await expect(page).toHaveURL('/dashboard')
+    
+    // 创建工作流
+    await page.click('[data-testid="create-workflow-button"]')
+    await page.fill('[data-testid="workflow-name-input"]', 'Test Workflow')
+    await page.fill('[data-testid="workflow-description-input"]', 'Test Description')
+    await page.click('[data-testid="save-workflow-button"]')
+    
+    // 验证工作流创建成功
+    await expect(page.locator('[data-testid="workflow-item"]')).toContainText('Test Workflow')
+  })
+  
+  test('handles authentication errors gracefully', async ({ page }) => {
+    await page.goto('/login')
+    await page.fill('[data-testid="username-input"]', 'wronguser')
+    await page.fill('[data-testid="password-input"]', 'wrongpassword')
+    await page.click('[data-testid="login-button"]')
+    
+    // 验证错误消息显示
+    await expect(page.locator('[data-testid="error-message"]')).toBeVisible()
+    await expect(page.locator('[data-testid="error-message"]')).toContainText('用户名或密码错误')
+  })
+})
+```
+
+##### 性能测试
+```javascript
+// tests/e2e/performance.spec.js
+import { test, expect } from '@playwright/test'
+
+test('page load performance', async ({ page }) => {
+  // 开始性能监控
+  await page.goto('/dashboard')
+  
+  // 等待页面完全加载
+  await page.waitForLoadState('networkidle')
+  
+  // 获取性能指标
+  const performanceMetrics = await page.evaluate(() => {
+    const navigation = performance.getEntriesByType('navigation')[0]
+    return {
+      loadTime: navigation.loadEventEnd - navigation.loadEventStart,
+      domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
+      firstPaint: performance.getEntriesByName('first-paint')[0]?.startTime || 0
+    }
+  })
+  
+  // 验证性能指标
+  expect(performanceMetrics.loadTime).toBeLessThan(3000) // 页面加载时间小于3秒
+  expect(performanceMetrics.domContentLoaded).toBeLessThan(2000) // DOM加载时间小于2秒
+  expect(performanceMetrics.firstPaint).toBeLessThan(1000) // 首次绘制时间小于1秒
+})
+```
+
+## 持续集成/持续部署 (CI/CD)
+
+### GitHub Actions 工作流
+
+#### 后端 CI/CD
+```yaml
+# .github/workflows/backend.yml
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: [ 'backend/**' ]
+  pull_request:
+    branches: [ main ]
+    paths: [ 'backend/**' ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: jilang_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.20
+    
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    
+    - name: Install dependencies
+      working-directory: ./backend
+      run: go mod download
+    
+    - name: Run tests
+      working-directory: ./backend
+      env:
+        DB_HOST: localhost
+        DB_PORT: 3306
+        DB_USER: root
+        DB_PASSWORD: password
+        DB_NAME: jilang_test
+      run: |
+        go test -v -race -coverprofile=coverage.out ./...
+        go tool cover -html=coverage.out -o coverage.html
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.out
+        flags: backend
+    
+    - name: Build
+      working-directory: ./backend
+      run: go build -v ./...
+    
+    - name: Run linter
+      uses: golangci/golangci-lint-action@v3
+      with:
+        working-directory: ./backend
+        version: latest
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.20
+    
+    - name: Build for production
+      working-directory: ./backend
+      run: |
+        CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+    
+    - name: Build Docker image
+      run: |
+        docker build -t jilang-backend:${{ github.sha }} ./backend
+        docker tag jilang-backend:${{ github.sha }} jilang-backend:latest
+    
+    - name: Deploy to production
+      run: |
+        # 部署脚本
+        echo "Deploying to production..."
+```
+
+#### 前端 CI/CD
+```yaml
+# .github/workflows/frontend.yml
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: [ 'frontend/**' ]
+  pull_request:
+    branches: [ main ]
+    paths: [ 'frontend/**' ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./frontend
+      run: npm ci
+    
+    - name: Run linter
+      working-directory: ./frontend
+      run: npm run lint
+    
+    - name: Run unit tests
+      working-directory: ./frontend
+      run: npm run test:unit
+    
+    - name: Run E2E tests
+      working-directory: ./frontend
+      run: |
+        npm run build
+        npm run test:e2e
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results
+        path: |
+          frontend/test-results/
+          frontend/coverage/
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./frontend
+      run: npm ci
+    
+    - name: Build for production
+      working-directory: ./frontend
+      env:
+        VITE_API_BASE_URL: ${{ secrets.PROD_API_URL }}
+      run: npm run build
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: frontend-dist
+        path: frontend/dist/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: frontend-dist
+        path: dist/
+    
+    - name: Deploy to CDN
+      run: |
+        # 部署到 CDN 或静态文件服务器
+        echo "Deploying frontend to CDN..."
+```
+
+### 代码质量检查
+
+#### 后端代码质量
+```yaml
+# .golangci.yml
+run:
+  timeout: 5m
+  issues-exit-code: 1
+  tests: true
+
+linters:
+  enable:
+    - gofmt
+    - goimports
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - gosimple
+    - structcheck
+    - varcheck
+    - ineffassign
+    - deadcode
+    - typecheck
+    - gosec
+    - misspell
+    - lll
+    - unparam
+    - nakedret
+    - prealloc
+    - scopelint
+    - gocritic
+
+linters-settings:
+  lll:
+    line-length: 120
+  gocritic:
+    enabled-tags:
+      - performance
+      - style
+      - experimental
+```
+
+#### 前端代码质量
+```javascript
+// .eslintrc.js
+module.exports = {
+  extends: [
+    '@vue/eslint-config-typescript',
+    '@vue/eslint-config-prettier'
+  ],
+  rules: {
+    'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+    'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+    '@typescript-eslint/no-unused-vars': 'error',
+    'vue/multi-word-component-names': 'off',
+    'vue/no-v-html': 'warn'
+  }
+}
+```
+
+## 部署策略
+
+### 容器化部署
+
+#### 后端 Dockerfile
+```dockerfile
+# backend/Dockerfile
+FROM golang:1.20-alpine AS builder
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates tzdata
+WORKDIR /root/
+
+COPY --from=builder /app/main .
+COPY --from=builder /app/config ./config
+
+EXPOSE 8080
+CMD ["./main"]
+```
+
+#### 前端 Dockerfile
+```dockerfile
+# frontend/Dockerfile
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+#### Docker Compose
+```yaml
+# docker-compose.yml
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - DB_NAME=jilang
+    depends_on:
+      - mysql
+      - redis
+    volumes:
+      - ./backend/logs:/app/logs
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=jilang
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  mysql_data:
+  redis_data:
+```
+
+### Kubernetes 部署
+
+#### 后端部署配置
+```yaml
+# k8s/backend-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jilang-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: jilang-backend
+  template:
+    metadata:
+      labels:
+        app: jilang-backend
+    spec:
+      containers:
+      - name: backend
+        image: jilang-backend:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_HOST
+          value: "mysql-service"
+        - name: DB_PORT
+          value: "3306"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jilang-backend-service
+spec:
+  selector:
+    app: jilang-backend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: ClusterIP
+```
+
+#### 前端部署配置
+```yaml
+# k8s/frontend-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jilang-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: jilang-frontend
+  template:
+    metadata:
+      labels:
+        app: jilang-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: jilang-frontend:latest
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jilang-frontend-service
+spec:
+  selector:
+    app: jilang-frontend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: LoadBalancer
+```
+
+### 监控和日志
+
+#### Prometheus 监控
+```yaml
+# k8s/monitoring.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+    - job_name: 'jilang-backend'
+      static_configs:
+      - targets: ['jilang-backend-service:80']
+      metrics_path: /metrics
+```
+
+#### 日志收集
+```yaml
+# k8s/logging.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-config
+data:
+  fluent-bit.conf: |
+    [INPUT]
+        Name tail
+        Path /var/log/containers/*jilang*.log
+        Parser docker
+        Tag kube.*
+    
+    [OUTPUT]
+        Name elasticsearch
+        Match *
+        Host elasticsearch-service
+        Port 9200
+        Index jilang-logs
+```
+
+## 环境管理
+
+### 环境配置
+
+#### 开发环境
+```bash
+# .env.development
+NODE_ENV=development
+VITE_API_BASE_URL=http://localhost:8080/api
+VITE_APP_TITLE=JiLang Agent (开发环境)
+
+# 后端配置
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=password
+DB_NAME=jilang_dev
+JWT_SECRET=dev-secret-key
+LOG_LEVEL=debug
+```
+
+#### 测试环境
+```bash
+# .env.testing
+NODE_ENV=testing
+VITE_API_BASE_URL=https://test-api.jilang.com/api
+VITE_APP_TITLE=JiLang Agent (测试环境)
+
+# 后端配置
+DB_HOST=test-mysql
+DB_PORT=3306
+DB_USER=test_user
+DB_PASSWORD=test_password
+DB_NAME=jilang_test
+JWT_SECRET=test-secret-key
+LOG_LEVEL=info
+```
+
+#### 生产环境
+```bash
+# .env.production
+NODE_ENV=production
+VITE_API_BASE_URL=https://api.jilang.com/api
+VITE_APP_TITLE=JiLang Agent
+
+# 后端配置（使用 Kubernetes Secrets）
+DB_HOST=prod-mysql-cluster
+DB_PORT=3306
+JWT_SECRET=<从 Secret 获取>
+LOG_LEVEL=warn
+```
+
+### 部署脚本
+
+#### 自动化部署脚本
+```bash
+#!/bin/bash
+# deploy.sh
+
+set -e
+
+ENVIRONMENT=${1:-staging}
+VERSION=${2:-latest}
+
+echo "Deploying to $ENVIRONMENT environment..."
+
+# 构建镜像
+docker build -t jilang-backend:$VERSION ./backend
+docker build -t jilang-frontend:$VERSION ./frontend
+
+# 推送到镜像仓库
+docker push jilang-backend:$VERSION
+docker push jilang-frontend:$VERSION
+
+# 更新 Kubernetes 部署
+kubectl set image deployment/jilang-backend backend=jilang-backend:$VERSION -n $ENVIRONMENT
+kubectl set image deployment/jilang-frontend frontend=jilang-frontend:$VERSION -n $ENVIRONMENT
+
+# 等待部署完成
+kubectl rollout status deployment/jilang-backend -n $ENVIRONMENT
+kubectl rollout status deployment/jilang-frontend -n $ENVIRONMENT
+
+echo "Deployment completed successfully!"
+```
+
+#### 回滚脚本
+```bash
+#!/bin/bash
+# rollback.sh
+
+ENVIRONMENT=${1:-staging}
+
+echo "Rolling back $ENVIRONMENT environment..."
+
+# 回滚到上一个版本
+kubectl rollout undo deployment/jilang-backend -n $ENVIRONMENT
+kubectl rollout undo deployment/jilang-frontend -n $ENVIRONMENT
+
+# 等待回滚完成
+kubectl rollout status deployment/jilang-backend -n $ENVIRONMENT
+kubectl rollout status deployment/jilang-frontend -n $ENVIRONMENT
+
+echo "Rollback completed successfully!"
+```
+
+## 质量保证
+
+### 代码覆盖率要求
+- **后端**: 最低 80% 代码覆盖率
+- **前端**: 最低 70% 代码覆盖率
+- **关键业务逻辑**: 最低 90% 代码覆盖率
+
+### 性能要求
+- **API 响应时间**: 95% 的请求在 200ms 内响应
+- **页面加载时间**: 首屏加载时间小于 2 秒
+- **并发处理**: 支持 1000+ 并发用户
+
+### 安全要求
+- **依赖扫描**: 定期扫描第三方依赖漏洞
+- **代码扫描**: 使用 SAST 工具扫描代码安全问题
+- **渗透测试**: 定期进行安全渗透测试
+
+参考 [项目架构总览](mdc:.cursor/rules/project-overview.mdc) 了解整体项目结构。

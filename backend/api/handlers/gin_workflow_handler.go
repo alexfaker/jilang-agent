@@ -32,45 +32,49 @@ type CreateWorkflowRequest struct {
 	Description string          `json:"description"`
 	Definition  json.RawMessage `json:"definition" binding:"required"`
 	Status      string          `json:"status"`
-	Tags        []string        `json:"tags"`
+	AgentID     *int64          `json:"agentId"` // 关联的代理ID
 }
 
-// GetWorkflows 获取工作流列表
+// GetWorkflows 获取用户的工作流列表
 func (h *GinWorkflowHandler) GetWorkflows(c *gin.Context) {
+	// 获取用户ID
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"status":  "error",
+			"message": "未找到用户信息",
+		})
+		return
+	}
+
 	// 获取分页参数
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
-	if page < 1 {
-		page = 1
+	limit := 20
+	offset := 0
+
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+			if limit > 100 {
+				limit = 100 // 限制最大查询数量
+			}
+		}
 	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
+
+	if offsetStr := c.Query("offset"); offsetStr != "" {
+		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+			offset = o
+		}
 	}
-	offset := (page - 1) * pageSize
 
 	// 获取筛选参数
-	nameFilter := c.Query("name")
-	tagFilter := c.Query("tag")
-	statusFilter := c.Query("status") // active, inactive, all
+	statusFilter := c.Query("status")
 
-	// 构建查询
-	query := h.DB.Model(&models.Workflow{})
+	// 构建查询 - 只查询当前用户的工作流
+	query := h.DB.Model(&models.Workflow{}).Where("user_id = ?", userID.(int64))
 
-	// 应用筛选条件
-	if nameFilter != "" {
-		query = query.Where("name LIKE ?", "%"+nameFilter+"%")
-	}
-	if tagFilter != "" {
-		query = query.Where("JSON_CONTAINS(tags, ?)", `"`+tagFilter+`"`)
-	}
-	if statusFilter == "active" {
-		query = query.Where("status = ?", models.WorkflowStatusActive)
-	} else if statusFilter == "inactive" {
-		query = query.Where("status = ?", models.WorkflowStatusInactive)
-	} else if statusFilter == "archived" {
-		query = query.Where("status = ?", models.WorkflowStatusArchived)
-	} else if statusFilter == "draft" {
-		query = query.Where("status = ?", models.WorkflowStatusDraft)
+	// 应用状态筛选
+	if statusFilter != "" {
+		query = query.Where("status = ?", statusFilter)
 	}
 
 	// 获取总记录数
@@ -79,7 +83,7 @@ func (h *GinWorkflowHandler) GetWorkflows(c *gin.Context) {
 
 	// 获取分页数据
 	var workflows []models.Workflow
-	result := query.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&workflows)
+	result := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&workflows)
 	if result.Error != nil {
 		h.Logger.Error("获取工作流列表失败", zap.Error(result.Error))
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -96,9 +100,9 @@ func (h *GinWorkflowHandler) GetWorkflows(c *gin.Context) {
 			"workflows": workflows,
 			"pagination": gin.H{
 				"total":     total,
-				"page":      page,
-				"page_size": pageSize,
-				"pages":     (total + int64(pageSize) - 1) / int64(pageSize),
+				"page":      offset/limit + 1,
+				"page_size": limit,
+				"pages":     (total + int64(limit) - 1) / int64(limit),
 			},
 		},
 	})
@@ -106,19 +110,30 @@ func (h *GinWorkflowHandler) GetWorkflows(c *gin.Context) {
 
 // GetWorkflow 获取单个工作流详情
 func (h *GinWorkflowHandler) GetWorkflow(c *gin.Context) {
-	// 获取工作流ID
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
+	// 获取用户ID
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
 			"status":  "error",
-			"message": "工作流ID不能为空",
+			"message": "未找到用户信息",
 		})
 		return
 	}
 
-	// 查询工作流
+	// 获取工作流ID
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "无效的工作流ID",
+		})
+		return
+	}
+
+	// 查询工作流 - 验证所有权
 	var workflow models.Workflow
-	result := h.DB.First(&workflow, id)
+	result := h.DB.Where("id = ? AND user_id = ?", id, userID.(int64)).First(&workflow)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -126,7 +141,7 @@ func (h *GinWorkflowHandler) GetWorkflow(c *gin.Context) {
 				"message": "工作流不存在",
 			})
 		} else {
-			h.Logger.Error("获取工作流详情失败", zap.Error(result.Error), zap.String("id", id))
+			h.Logger.Error("获取工作流详情失败", zap.Error(result.Error), zap.Int64("id", id))
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  "error",
 				"message": "获取工作流详情失败: " + result.Error.Error(),
@@ -159,7 +174,17 @@ func (h *GinWorkflowHandler) CreateWorkflow(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "error",
-			"message": "无效的请求数据: " + err.Error(),
+			"message": "请求数据格式错误: " + err.Error(),
+		})
+		return
+	}
+
+	// 验证 JSON 定义
+	var definition map[string]interface{}
+	if err := json.Unmarshal(req.Definition, &definition); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "工作流定义必须是有效的JSON格式",
 		})
 		return
 	}
@@ -177,8 +202,14 @@ func (h *GinWorkflowHandler) CreateWorkflow(c *gin.Context) {
 		Definition:  req.Definition,
 		Status:      workflowStatus,
 		UserID:      userID.(int64),
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		AgentID:     req.AgentID,
+		RunCount:    0,
+	}
+
+	// 如果是从代理购买的，设置购买时间
+	if req.AgentID != nil {
+		now := time.Now()
+		workflow.PurchasedAt = &now
 	}
 
 	// 保存到数据库
@@ -194,27 +225,45 @@ func (h *GinWorkflowHandler) CreateWorkflow(c *gin.Context) {
 
 	// 返回创建的工作流
 	c.JSON(http.StatusCreated, gin.H{
-		"status":  "success",
-		"message": "工作流创建成功",
-		"data":    workflow,
+		"status": "success",
+		"data":   workflow,
 	})
+}
+
+// UpdateWorkflowRequest 更新工作流请求结构
+type UpdateWorkflowRequest struct {
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Definition  json.RawMessage `json:"definition"`
+	Status      string          `json:"status"`
 }
 
 // UpdateWorkflow 更新工作流
 func (h *GinWorkflowHandler) UpdateWorkflow(c *gin.Context) {
-	// 获取工作流ID
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
+	// 获取用户ID
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
 			"status":  "error",
-			"message": "工作流ID不能为空",
+			"message": "未找到用户信息",
 		})
 		return
 	}
 
-	// 查询工作流是否存在
+	// 获取工作流ID
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "无效的工作流ID",
+		})
+		return
+	}
+
+	// 查询工作流 - 验证所有权
 	var workflow models.Workflow
-	result := h.DB.First(&workflow, id)
+	result := h.DB.Where("id = ? AND user_id = ?", id, userID.(int64)).First(&workflow)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -222,48 +271,77 @@ func (h *GinWorkflowHandler) UpdateWorkflow(c *gin.Context) {
 				"message": "工作流不存在",
 			})
 		} else {
-			h.Logger.Error("查询工作流失败", zap.Error(result.Error), zap.String("id", id))
+			h.Logger.Error("获取工作流失败", zap.Error(result.Error), zap.Int64("id", id))
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  "error",
-				"message": "查询工作流失败: " + result.Error.Error(),
+				"message": "获取工作流失败: " + result.Error.Error(),
 			})
 		}
 		return
 	}
 
 	// 解析请求
-	var req CreateWorkflowRequest
+	var req UpdateWorkflowRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "error",
-			"message": "无效的请求数据: " + err.Error(),
+			"message": "请求数据格式错误: " + err.Error(),
 		})
 		return
 	}
 
-	// 设置工作流状态
-	workflowStatus := workflow.Status // 保持原有状态
-	if req.Status == "active" {
-		workflowStatus = models.WorkflowStatusActive
-	} else if req.Status == "inactive" {
-		workflowStatus = models.WorkflowStatusInactive
-	} else if req.Status == "archived" {
-		workflowStatus = models.WorkflowStatusArchived
-	} else if req.Status == "draft" {
-		workflowStatus = models.WorkflowStatusDraft
+	// 验证 JSON 定义（如果提供了）
+	if len(req.Definition) > 0 {
+		var definition map[string]interface{}
+		if err := json.Unmarshal(req.Definition, &definition); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  "error",
+				"message": "工作流定义必须是有效的JSON格式",
+			})
+			return
+		}
+	}
+
+	// 准备更新数据
+	updates := map[string]interface{}{}
+	if req.Name != "" {
+		updates["name"] = req.Name
+	}
+	if req.Description != "" {
+		updates["description"] = req.Description
+	}
+	if len(req.Definition) > 0 {
+		updates["definition"] = req.Definition
+	}
+	if req.Status != "" {
+		// 验证状态值
+		validStatuses := []models.WorkflowStatus{
+			models.WorkflowStatusDraft,
+			models.WorkflowStatusActive,
+			models.WorkflowStatusInactive,
+			models.WorkflowStatusArchived,
+		}
+		validStatus := false
+		for _, status := range validStatuses {
+			if req.Status == string(status) {
+				validStatus = true
+				break
+			}
+		}
+		if !validStatus {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  "error",
+				"message": "无效的工作流状态",
+			})
+			return
+		}
+		updates["status"] = req.Status
 	}
 
 	// 更新工作流
-	workflow.Name = req.Name
-	workflow.Description = req.Description
-	workflow.Definition = req.Definition
-	workflow.Status = workflowStatus
-	workflow.UpdatedAt = time.Now()
-
-	// 保存到数据库
-	result = h.DB.Save(&workflow)
+	result = h.DB.Model(&workflow).Updates(updates)
 	if result.Error != nil {
-		h.Logger.Error("更新工作流失败", zap.Error(result.Error), zap.String("id", id))
+		h.Logger.Error("更新工作流失败", zap.Error(result.Error), zap.Int64("id", id))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",
 			"message": "更新工作流失败: " + result.Error.Error(),
@@ -271,29 +349,42 @@ func (h *GinWorkflowHandler) UpdateWorkflow(c *gin.Context) {
 		return
 	}
 
+	// 重新获取更新后的工作流
+	h.DB.Where("id = ? AND user_id = ?", id, userID.(int64)).First(&workflow)
+
 	// 返回更新后的工作流
 	c.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "工作流更新成功",
-		"data":    workflow,
+		"status": "success",
+		"data":   workflow,
 	})
 }
 
 // DeleteWorkflow 删除工作流
 func (h *GinWorkflowHandler) DeleteWorkflow(c *gin.Context) {
-	// 获取工作流ID
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
+	// 获取用户ID
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
 			"status":  "error",
-			"message": "工作流ID不能为空",
+			"message": "未找到用户信息",
 		})
 		return
 	}
 
-	// 查询工作流是否存在
+	// 获取工作流ID
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "无效的工作流ID",
+		})
+		return
+	}
+
+	// 查询工作流 - 验证所有权
 	var workflow models.Workflow
-	result := h.DB.First(&workflow, id)
+	result := h.DB.Where("id = ? AND user_id = ?", id, userID.(int64)).First(&workflow)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -301,22 +392,35 @@ func (h *GinWorkflowHandler) DeleteWorkflow(c *gin.Context) {
 				"message": "工作流不存在",
 			})
 		} else {
-			h.Logger.Error("查询工作流失败", zap.Error(result.Error), zap.String("id", id))
+			h.Logger.Error("获取工作流失败", zap.Error(result.Error), zap.Int64("id", id))
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  "error",
-				"message": "查询工作流失败: " + result.Error.Error(),
+				"message": "获取工作流失败: " + result.Error.Error(),
 			})
 		}
 		return
 	}
 
-	// 删除工作流
-	result = h.DB.Delete(&workflow)
-	if result.Error != nil {
-		h.Logger.Error("删除工作流失败", zap.Error(result.Error), zap.String("id", id))
+	// 使用事务删除工作流及其执行记录
+	err = h.DB.Transaction(func(tx *gorm.DB) error {
+		// 删除关联的执行记录
+		if err := tx.Where("workflow_id = ?", id).Delete(&models.WorkflowExecution{}).Error; err != nil {
+			return err
+		}
+
+		// 删除工作流
+		if err := tx.Delete(&workflow).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		h.Logger.Error("删除工作流失败", zap.Error(err), zap.Int64("id", id))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",
-			"message": "删除工作流失败: " + result.Error.Error(),
+			"message": "删除工作流失败: " + err.Error(),
 		})
 		return
 	}

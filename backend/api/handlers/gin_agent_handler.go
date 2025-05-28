@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// GinAgentHandler 处理代理相关的请求
+// GinAgentHandler 处理工作流商店相关的请求
 type GinAgentHandler struct {
 	DB     *gorm.DB
 	Logger *zap.Logger
@@ -25,32 +25,11 @@ func NewGinAgentHandler(db *gorm.DB, logger *zap.Logger) *GinAgentHandler {
 	}
 }
 
-// GetAgents 获取代理列表
+// GetAgents 获取工作流商店中的代理列表
 func (h *GinAgentHandler) GetAgents(c *gin.Context) {
-	// 从请求上下文中获取用户ID
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"status":  "error",
-			"message": "无效的用户身份",
-		})
-		return
-	}
-
 	// 解析查询参数
 	category := c.Query("category")
-
-	// 是否公开筛选（可选）
-	var isPublic *bool
-	if publicStr := c.Query("is_public"); publicStr != "" {
-		if publicStr == "true" {
-			trueValue := true
-			isPublic = &trueValue
-		} else if publicStr == "false" {
-			falseValue := false
-			isPublic = &falseValue
-		}
-	}
+	search := c.Query("search")
 
 	// 分页参数
 	limit := 20
@@ -71,36 +50,26 @@ func (h *GinAgentHandler) GetAgents(c *gin.Context) {
 		}
 	}
 
-	// 查询代理列表
+	// 查询代理列表（只查询公开的代理）
 	var agents []models.Agent
-	query := h.DB.Model(&models.Agent{})
-
-	// 应用筛选条件
-	uid := userID.(int64)
-	if isPublic != nil {
-		if *isPublic {
-			// 查询公开的代理
-			query = query.Where("is_public = ?", true)
-		} else {
-			// 查询用户自己的非公开代理
-			query = query.Where("user_id = ?", uid).Where("is_public = ?", false)
-		}
-	} else {
-		// 查询公开的代理和用户自己的代理
-		query = query.Where("is_public = ? OR user_id = ?", true, uid)
-	}
+	query := h.DB.Model(&models.Agent{}).Where("is_public = ?", true)
 
 	// 应用类别筛选
 	if category != "" {
 		query = query.Where("category = ?", category)
 	}
 
+	// 应用搜索筛选
+	if search != "" {
+		query = query.Where("name LIKE ? OR description LIKE ?", "%"+search+"%", "%"+search+"%")
+	}
+
 	// 获取总记录数
 	var total int64
 	query.Count(&total)
 
-	// 获取分页数据
-	result := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&agents)
+	// 获取分页数据（按购买次数、评分、创建时间排序）
+	result := query.Order("purchase_count DESC, rating DESC, created_at DESC").Offset(offset).Limit(limit).Find(&agents)
 	if result.Error != nil {
 		h.Logger.Error("获取代理列表失败", zap.Error(result.Error))
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -125,18 +94,8 @@ func (h *GinAgentHandler) GetAgents(c *gin.Context) {
 	})
 }
 
-// GetAgent 获取单个代理
+// GetAgent 获取单个代理详情
 func (h *GinAgentHandler) GetAgent(c *gin.Context) {
-	// 从请求上下文中获取用户ID
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"status":  "error",
-			"message": "无效的用户身份",
-		})
-		return
-	}
-
 	// 获取路径参数
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
@@ -148,9 +107,9 @@ func (h *GinAgentHandler) GetAgent(c *gin.Context) {
 		return
 	}
 
-	// 获取代理
+	// 获取代理（只能获取公开的代理）
 	var agent models.Agent
-	result := h.DB.First(&agent, id)
+	result := h.DB.Where("is_public = ?", true).First(&agent, id)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -167,16 +126,6 @@ func (h *GinAgentHandler) GetAgent(c *gin.Context) {
 		return
 	}
 
-	// 验证用户权限（只能查看公开的代理或自己的代理）
-	uid := userID.(int64)
-	if !agent.IsPublic && (agent.UserID == nil || *agent.UserID != uid) {
-		c.JSON(http.StatusForbidden, gin.H{
-			"status":  "error",
-			"message": "无权访问此代理",
-		})
-		return
-	}
-
 	// 返回结果
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
@@ -186,9 +135,9 @@ func (h *GinAgentHandler) GetAgent(c *gin.Context) {
 
 // GetAgentCategories 获取代理分类列表
 func (h *GinAgentHandler) GetAgentCategories(c *gin.Context) {
-	// 查询所有不同的代理分类
+	// 查询公开代理的所有不同分类
 	var categories []string
-	result := h.DB.Model(&models.Agent{}).Distinct().Pluck("category", &categories)
+	result := h.DB.Model(&models.Agent{}).Where("is_public = ? AND category != ''", true).Distinct().Pluck("category", &categories)
 	if result.Error != nil {
 		h.Logger.Error("获取代理分类失败", zap.Error(result.Error))
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -213,17 +162,18 @@ type AgentCreateRequest struct {
 	Category    string          `json:"category" binding:"required"`
 	Icon        string          `json:"icon"`
 	Definition  json.RawMessage `json:"definition" binding:"required"`
+	Price       int             `json:"price" binding:"required,min=0"`
 	IsPublic    bool            `json:"is_public"`
 }
 
-// CreateAgent 创建代理
+// CreateAgent 创建代理（管理员功能）
 func (h *GinAgentHandler) CreateAgent(c *gin.Context) {
-	// 从请求上下文中获取用户ID
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
+	// 检查管理员权限
+	userRole, exists := c.Get("userRole")
+	if !exists || userRole != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{
 			"status":  "error",
-			"message": "无效的用户身份",
+			"message": "权限不足，只有管理员可以创建代理",
 		})
 		return
 	}
@@ -233,35 +183,35 @@ func (h *GinAgentHandler) CreateAgent(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "error",
-			"message": "无效的请求数据: " + err.Error(),
+			"message": "请求数据格式错误: " + err.Error(),
 		})
 		return
 	}
 
-	// 验证Definition是有效的JSON
-	var js json.RawMessage
-	if err := json.Unmarshal(req.Definition, &js); err != nil {
+	// 验证 JSON 定义
+	var definition map[string]interface{}
+	if err := json.Unmarshal(req.Definition, &definition); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "error",
-			"message": "代理定义不是有效的JSON: " + err.Error(),
+			"message": "代理定义必须是有效的JSON格式",
 		})
 		return
 	}
 
 	// 创建代理
-	uid := userID.(int64)
 	agent := models.Agent{
-		Name:        req.Name,
-		Description: req.Description,
-		Type:        req.Type,
-		Category:    req.Category,
-		Icon:        req.Icon,
-		Definition:  req.Definition,
-		IsPublic:    req.IsPublic,
-		UserID:      &uid,
+		Name:          req.Name,
+		Description:   req.Description,
+		Type:          req.Type,
+		Category:      req.Category,
+		Icon:          req.Icon,
+		Definition:    req.Definition,
+		Price:         req.Price,
+		PurchaseCount: 0,
+		Rating:        0.0,
+		IsPublic:      req.IsPublic,
 	}
 
-	// 保存到数据库
 	result := h.DB.Create(&agent)
 	if result.Error != nil {
 		h.Logger.Error("创建代理失败", zap.Error(result.Error))
@@ -272,11 +222,10 @@ func (h *GinAgentHandler) CreateAgent(c *gin.Context) {
 		return
 	}
 
-	// 返回结果
+	// 返回创建的代理
 	c.JSON(http.StatusCreated, gin.H{
-		"status":  "success",
-		"message": "代理创建成功",
-		"data":    agent,
+		"status": "success",
+		"data":   agent,
 	})
 }
 
@@ -288,17 +237,18 @@ type AgentUpdateRequest struct {
 	Category    string          `json:"category"`
 	Icon        string          `json:"icon"`
 	Definition  json.RawMessage `json:"definition"`
+	Price       int             `json:"price"`
 	IsPublic    *bool           `json:"is_public"`
 }
 
-// UpdateAgent 更新代理
+// UpdateAgent 更新代理（管理员功能）
 func (h *GinAgentHandler) UpdateAgent(c *gin.Context) {
-	// 从请求上下文中获取用户ID
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
+	// 检查管理员权限
+	userRole, exists := c.Get("userRole")
+	if !exists || userRole != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{
 			"status":  "error",
-			"message": "无效的用户身份",
+			"message": "权限不足，只有管理员可以更新代理",
 		})
 		return
 	}
@@ -314,7 +264,7 @@ func (h *GinAgentHandler) UpdateAgent(c *gin.Context) {
 		return
 	}
 
-	// 获取代理
+	// 检查代理是否存在
 	var agent models.Agent
 	result := h.DB.First(&agent, id)
 	if result.Error != nil {
@@ -333,39 +283,29 @@ func (h *GinAgentHandler) UpdateAgent(c *gin.Context) {
 		return
 	}
 
-	// 验证用户权限（只能更新自己的代理）
-	uid := userID.(int64)
-	if agent.UserID == nil || *agent.UserID != uid {
-		c.JSON(http.StatusForbidden, gin.H{
-			"status":  "error",
-			"message": "无权更新此代理",
-		})
-		return
-	}
-
 	// 解析请求体
 	var req AgentUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "error",
-			"message": "无效的请求数据: " + err.Error(),
+			"message": "请求数据格式错误: " + err.Error(),
 		})
 		return
 	}
 
-	// 验证Definition是有效的JSON（如果提供）
+	// 验证 JSON 定义（如果提供了）
 	if len(req.Definition) > 0 {
-		var js json.RawMessage
-		if err := json.Unmarshal(req.Definition, &js); err != nil {
+		var definition map[string]interface{}
+		if err := json.Unmarshal(req.Definition, &definition); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  "error",
-				"message": "代理定义不是有效的JSON: " + err.Error(),
+				"message": "代理定义必须是有效的JSON格式",
 			})
 			return
 		}
 	}
 
-	// 更新代理
+	// 准备更新数据
 	updates := map[string]interface{}{}
 	if req.Name != "" {
 		updates["name"] = req.Name
@@ -385,10 +325,14 @@ func (h *GinAgentHandler) UpdateAgent(c *gin.Context) {
 	if len(req.Definition) > 0 {
 		updates["definition"] = req.Definition
 	}
+	if req.Price > 0 {
+		updates["price"] = req.Price
+	}
 	if req.IsPublic != nil {
 		updates["is_public"] = *req.IsPublic
 	}
 
+	// 更新代理
 	result = h.DB.Model(&agent).Updates(updates)
 	if result.Error != nil {
 		h.Logger.Error("更新代理失败", zap.Error(result.Error), zap.Int64("id", id))
@@ -402,22 +346,21 @@ func (h *GinAgentHandler) UpdateAgent(c *gin.Context) {
 	// 重新获取更新后的代理
 	h.DB.First(&agent, id)
 
-	// 返回结果
+	// 返回更新后的代理
 	c.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "代理更新成功",
-		"data":    agent,
+		"status": "success",
+		"data":   agent,
 	})
 }
 
-// DeleteAgent 删除代理
+// DeleteAgent 删除代理（管理员功能）
 func (h *GinAgentHandler) DeleteAgent(c *gin.Context) {
-	// 从请求上下文中获取用户ID
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
+	// 检查管理员权限
+	userRole, exists := c.Get("userRole")
+	if !exists || userRole != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{
 			"status":  "error",
-			"message": "无效的用户身份",
+			"message": "权限不足，只有管理员可以删除代理",
 		})
 		return
 	}
@@ -433,7 +376,7 @@ func (h *GinAgentHandler) DeleteAgent(c *gin.Context) {
 		return
 	}
 
-	// 获取代理
+	// 检查代理是否存在
 	var agent models.Agent
 	result := h.DB.First(&agent, id)
 	if result.Error != nil {
@@ -452,12 +395,13 @@ func (h *GinAgentHandler) DeleteAgent(c *gin.Context) {
 		return
 	}
 
-	// 验证用户权限（只能删除自己的代理）
-	uid := userID.(int64)
-	if agent.UserID == nil || *agent.UserID != uid {
-		c.JSON(http.StatusForbidden, gin.H{
+	// 检查是否有用户购买了此代理
+	var workflowCount int64
+	h.DB.Model(&models.Workflow{}).Where("agent_id = ?", id).Count(&workflowCount)
+	if workflowCount > 0 {
+		c.JSON(http.StatusConflict, gin.H{
 			"status":  "error",
-			"message": "无权删除此代理",
+			"message": "无法删除代理，已有用户购买了此代理",
 		})
 		return
 	}
@@ -473,7 +417,7 @@ func (h *GinAgentHandler) DeleteAgent(c *gin.Context) {
 		return
 	}
 
-	// 返回结果
+	// 返回成功响应
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
 		"message": "代理删除成功",

@@ -139,7 +139,7 @@ func (h *GinAuthHandler) Register(c *gin.Context) {
 
 // LoginRequest 登录请求结构
 type LoginRequest struct {
-	Username string `json:"username" binding:"required"`
+	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -154,13 +154,13 @@ func (h *GinAuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// 查找用户
+	// 查找用户 - 支持邮箱登录
 	var user models.User
-	if err := h.DB.Where("username = ?", req.Username).First(&user).Error; err != nil {
+	if err := h.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"status":  "error",
-				"message": "用户名或密码不正确",
+				"message": "邮箱或密码不正确",
 			})
 		} else {
 			h.Logger.Error("查找用户失败", zap.Error(err))
@@ -176,7 +176,7 @@ func (h *GinAuthHandler) Login(c *gin.Context) {
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"status":  "error",
-			"message": "用户名或密码不正确",
+			"message": "邮箱或密码不正确",
 		})
 		return
 	}
@@ -232,7 +232,6 @@ func (h *GinAuthHandler) RefreshToken(c *gin.Context) {
 	token, err := jwt.Parse(req.Token, func(token *jwt.Token) (interface{}, error) {
 		return []byte(h.Config.JWTSecret), nil
 	})
-
 	// 处理解析错误
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{

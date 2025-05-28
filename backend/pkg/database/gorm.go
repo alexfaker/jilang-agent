@@ -12,13 +12,8 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// GormDB 封装GORM数据库实例
-type GormDB struct {
-	DB *gorm.DB
-}
-
-// ConnectGormDB 连接到数据库并返回GormDB实例
-func ConnectGormDB(cfg config.DatabaseConfig) (*GormDB, error) {
+// ConnectGormDB 连接到数据库并返回gorm.DB实例
+func ConnectGormDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	var db *gorm.DB
 	var err error
 
@@ -74,7 +69,22 @@ func ConnectGormDB(cfg config.DatabaseConfig) (*GormDB, error) {
 		return nil, fmt.Errorf("数据库连接验证失败: %w", err)
 	}
 
-	return &GormDB{DB: db}, nil
+	return db, nil
+}
+
+// AutoMigrate 自动迁移数据库模型
+func AutoMigrate(db *gorm.DB) error {
+	return db.AutoMigrate(
+		&models.User{},
+		&models.Workflow{},
+		&models.WorkflowExecution{},
+		&models.Agent{},
+	)
+}
+
+// GormDB 封装GORM数据库实例（保持向后兼容）
+type GormDB struct {
+	DB *gorm.DB
 }
 
 // Close 关闭数据库连接
@@ -84,14 +94,4 @@ func (g *GormDB) Close() error {
 		return fmt.Errorf("获取数据库连接失败: %w", err)
 	}
 	return sqlDB.Close()
-}
-
-// AutoMigrate 自动迁移数据库模型
-func (g *GormDB) AutoMigrate() error {
-	return g.DB.AutoMigrate(
-		&models.User{},
-		&models.Workflow{},
-		&models.WorkflowExecution{},
-		&models.WorkflowAgent{},
-	)
 }

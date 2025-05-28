@@ -1,0 +1,577 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# API 设计规范
+
+## 概述
+
+本规范定义了 JiLang Agent 项目前后端 API 接口的设计标准，包括 RESTful API 设计原则、请求响应格式、错误处理、认证授权等方面的最佳实践。
+
+## RESTful API 设计原则
+
+### URL 设计规范
+
+#### 资源命名
+- 使用名词而非动词
+- 使用复数形式表示资源集合
+- 使用小写字母和连字符分隔
+
+```
+✅ 正确示例:
+GET /api/users              # 获取用户列表
+GET /api/users/123          # 获取特定用户
+GET /api/workflows          # 获取工作流列表
+GET /api/workflow-executions # 获取执行记录
+
+❌ 错误示例:
+GET /api/getUsers
+GET /api/user
+GET /api/workflowExecution
+```
+
+#### HTTP 方法使用
+```
+GET     /api/users          # 获取用户列表
+GET     /api/users/123      # 获取特定用户
+POST    /api/users          # 创建新用户
+PUT     /api/users/123      # 完整更新用户
+PATCH   /api/users/123      # 部分更新用户
+DELETE  /api/users/123      # 删除用户
+```
+
+### 核心 API 端点
+
+参考后端路由配置: [gin_routes.go](mdc:backend/api/routes/gin_routes.go)
+
+#### 认证相关
+```
+POST   /api/auth/login      # 用户登录
+POST   /api/auth/register   # 用户注册
+POST   /api/auth/logout     # 用户登出
+POST   /api/auth/refresh    # 刷新令牌
+```
+
+#### 用户管理
+```
+GET    /api/users           # 获取用户列表
+GET    /api/users/profile   # 获取当前用户信息
+PUT    /api/users/profile   # 更新当前用户信息
+GET    /api/users/:id       # 获取指定用户信息
+PUT    /api/users/:id       # 更新指定用户信息
+DELETE /api/users/:id       # 删除指定用户
+```
+
+#### 工作流管理
+```
+GET    /api/workflows       # 获取工作流列表
+POST   /api/workflows       # 创建工作流
+GET    /api/workflows/:id   # 获取工作流详情
+PUT    /api/workflows/:id   # 更新工作流
+DELETE /api/workflows/:id   # 删除工作流
+POST   /api/workflows/:id/execute # 执行工作流
+```
+
+#### 代理管理
+```
+GET    /api/agents          # 获取代理列表
+POST   /api/agents          # 创建代理
+GET    /api/agents/:id      # 获取代理详情
+PUT    /api/agents/:id      # 更新代理
+DELETE /api/agents/:id      # 删除代理
+```
+
+#### 执行历史
+```
+GET    /api/executions      # 获取执行记录列表
+GET    /api/executions/:id  # 获取执行记录详情
+DELETE /api/executions/:id  # 删除执行记录
+```
+
+#### 统计数据
+```
+GET    /api/stats/overview  # 获取概览统计
+GET    /api/stats/workflows # 获取工作流统计
+GET    /api/stats/agents    # 获取代理统计
+```
+
+## 请求响应格式
+
+### 统一响应结构
+
+参考响应工具: [response.go](mdc:backend/utils/response.go)
+
+#### 成功响应
+```json
+{
+  "success": true,
+  "data": {
+    // 实际数据
+  },
+  "message": "操作成功"
+}
+```
+
+#### 错误响应
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "参数验证失败",
+    "details": [
+      {
+        "field": "email",
+        "message": "邮箱格式不正确"
+      }
+    ]
+  }
+}
+```
+
+#### 分页响应
+```json
+{
+  "success": true,
+  "data": [
+    // 数据项
+  ],
+  "pagination": {
+    "page": 1,
+    "page_size": 20,
+    "total": 100,
+    "total_pages": 5
+  }
+}
+```
+
+### 请求格式规范
+
+#### 查询参数
+```
+GET /api/users?page=1&page_size=20&search=john&status=active
+```
+
+#### 请求体格式
+```json
+{
+  "username": "john_doe",
+  "email": "john@example.com",
+  "password": "secure_password"
+}
+```
+
+#### 文件上传
+```
+POST /api/upload
+Content-Type: multipart/form-data
+
+file: [binary data]
+description: "文件描述"
+```
+
+## 状态码规范
+
+### HTTP 状态码使用
+
+#### 成功状态码
+- `200 OK` - 请求成功
+- `201 Created` - 资源创建成功
+- `204 No Content` - 请求成功但无返回内容
+
+#### 客户端错误
+- `400 Bad Request` - 请求参数错误
+- `401 Unauthorized` - 未认证
+- `403 Forbidden` - 无权限
+- `404 Not Found` - 资源不存在
+- `409 Conflict` - 资源冲突
+- `422 Unprocessable Entity` - 参数验证失败
+
+#### 服务器错误
+- `500 Internal Server Error` - 服务器内部错误
+- `502 Bad Gateway` - 网关错误
+- `503 Service Unavailable` - 服务不可用
+
+### 自定义错误码
+
+```json
+{
+  "USER_NOT_FOUND": "用户不存在",
+  "INVALID_CREDENTIALS": "用户名或密码错误",
+  "TOKEN_EXPIRED": "令牌已过期",
+  "INSUFFICIENT_PERMISSIONS": "权限不足",
+  "WORKFLOW_EXECUTION_FAILED": "工作流执行失败",
+  "AGENT_NOT_AVAILABLE": "代理不可用"
+}
+```
+
+## 认证和授权
+
+### JWT 认证
+
+参考 JWT 工具: [jwt.go](mdc:backend/utils/jwt.go)
+
+#### 令牌格式
+```
+Authorization: Bearer <jwt_token>
+```
+
+#### 令牌结构
+```json
+{
+  "header": {
+    "alg": "HS256",
+    "typ": "JWT"
+  },
+  "payload": {
+    "user_id": 123,
+    "username": "john_doe",
+    "role": "user",
+    "exp": 1640995200,
+    "iat": 1640908800
+  }
+}
+```
+
+#### 认证流程
+1. 用户登录，服务器验证凭据
+2. 验证成功，生成 JWT 令牌
+3. 客户端存储令牌，后续请求携带
+4. 服务器验证令牌有效性
+
+### 权限控制
+
+#### 角色定义
+```go
+const (
+    RoleAdmin = "admin"
+    RoleUser  = "user"
+    RoleGuest = "guest"
+)
+```
+
+#### 权限检查中间件
+
+参考认证中间件: [gin_auth.go](mdc:backend/api/middleware/gin_auth.go)
+
+```go
+func RequireAuth() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        token := extractToken(c)
+        if !isValidToken(token) {
+            c.JSON(401, gin.H{"error": "未认证"})
+            c.Abort()
+            return
+        }
+        c.Next()
+    }
+}
+```
+
+## 数据验证
+
+### 输入验证规范
+
+#### 用户注册验证
+```go
+type RegisterRequest struct {
+    Username string `json:"username" binding:"required,min=3,max=50"`
+    Email    string `json:"email" binding:"required,email"`
+    Password string `json:"password" binding:"required,min=6"`
+}
+```
+
+#### 工作流创建验证
+```go
+type CreateWorkflowRequest struct {
+    Name        string `json:"name" binding:"required,max=100"`
+    Description string `json:"description" binding:"max=500"`
+    Config      string `json:"config" binding:"required"`
+    IsPublic    bool   `json:"is_public"`
+}
+```
+
+### 数据清理和转换
+
+#### 字符串处理
+```go
+// 去除空格
+username = strings.TrimSpace(username)
+
+// 转换为小写
+email = strings.ToLower(email)
+
+// HTML 转义
+description = html.EscapeString(description)
+```
+
+#### 数据格式化
+```go
+// 时间格式化
+createdAt := time.Now().Format("2006-01-02 15:04:05")
+
+// 数字格式化
+price := fmt.Sprintf("%.2f", 123.456)
+```
+
+## 错误处理
+
+### 错误分类
+
+#### 业务错误
+```go
+type BusinessError struct {
+    Code    string `json:"code"`
+    Message string `json:"message"`
+}
+
+var (
+    ErrUserNotFound = BusinessError{
+        Code:    "USER_NOT_FOUND",
+        Message: "用户不存在",
+    }
+    ErrInvalidCredentials = BusinessError{
+        Code:    "INVALID_CREDENTIALS", 
+        Message: "用户名或密码错误",
+    }
+)
+```
+
+#### 系统错误
+```go
+func handleSystemError(c *gin.Context, err error) {
+    logger.Error("系统错误", zap.Error(err))
+    c.JSON(500, gin.H{
+        "success": false,
+        "error": gin.H{
+            "code":    "INTERNAL_ERROR",
+            "message": "系统内部错误",
+        },
+    })
+}
+```
+
+### 错误响应示例
+
+#### 参数验证错误
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "参数验证失败",
+    "details": [
+      {
+        "field": "email",
+        "message": "邮箱格式不正确"
+      },
+      {
+        "field": "password",
+        "message": "密码长度至少6位"
+      }
+    ]
+  }
+}
+```
+
+#### 业务逻辑错误
+```json
+{
+  "success": false,
+  "error": {
+    "code": "WORKFLOW_EXECUTION_FAILED",
+    "message": "工作流执行失败",
+    "details": "代理服务不可用"
+  }
+}
+```
+
+## API 版本控制
+
+### 版本策略
+- 使用 URL 路径版本控制: `/api/v1/users`
+- 主要版本变更时创建新版本
+- 保持向后兼容性
+
+### 版本管理
+```
+/api/v1/users    # 版本1
+/api/v2/users    # 版本2（新功能）
+```
+
+## 性能优化
+
+### 分页处理
+```go
+type PaginationParams struct {
+    Page     int `form:"page" binding:"min=1"`
+    PageSize int `form:"page_size" binding:"min=1,max=100"`
+}
+
+func (p *PaginationParams) GetOffset() int {
+    return (p.Page - 1) * p.PageSize
+}
+```
+
+### 缓存策略
+```go
+// Redis 缓存
+func GetUserFromCache(userID int) (*User, error) {
+    key := fmt.Sprintf("user:%d", userID)
+    data, err := redis.Get(key)
+    if err != nil {
+        return nil, err
+    }
+    
+    var user User
+    err = json.Unmarshal([]byte(data), &user)
+    return &user, err
+}
+```
+
+### 数据库查询优化
+```go
+// 预加载关联数据
+db.Preload("Workflows").Find(&users)
+
+// 选择特定字段
+db.Select("id, username, email").Find(&users)
+
+// 分页查询
+db.Offset(offset).Limit(limit).Find(&users)
+```
+
+## API 文档
+
+### 接口文档格式
+
+#### 用户登录接口
+```yaml
+POST /api/auth/login
+Description: 用户登录
+Parameters:
+  - name: username
+    type: string
+    required: true
+    description: 用户名
+  - name: password
+    type: string
+    required: true
+    description: 密码
+Response:
+  success:
+    code: 200
+    data:
+      token: "jwt_token_string"
+      user:
+        id: 1
+        username: "john_doe"
+        email: "john@example.com"
+  error:
+    code: 401
+    message: "用户名或密码错误"
+```
+
+### 自动化文档生成
+
+#### Swagger 注释
+```go
+// @Summary 用户登录
+// @Description 用户登录接口
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "登录请求"
+// @Success 200 {object} LoginResponse
+// @Failure 401 {object} ErrorResponse
+// @Router /api/auth/login [post]
+func (h *AuthHandler) Login(c *gin.Context) {
+    // 实现逻辑
+}
+```
+
+## 测试规范
+
+### API 测试
+
+#### 单元测试
+```go
+func TestUserHandler_GetUser(t *testing.T) {
+    // 设置测试数据
+    user := &models.User{
+        ID:       1,
+        Username: "testuser",
+        Email:    "test@example.com",
+    }
+    
+    // 模拟数据库
+    db := setupTestDB()
+    db.Create(user)
+    
+    // 创建处理器
+    handler := NewUserHandler(db, logger)
+    
+    // 创建测试请求
+    req := httptest.NewRequest("GET", "/api/users/1", nil)
+    w := httptest.NewRecorder()
+    c, _ := gin.CreateTestContext(w)
+    c.Request = req
+    c.Params = gin.Params{{Key: "id", Value: "1"}}
+    
+    // 执行测试
+    handler.GetUser(c)
+    
+    // 验证结果
+    assert.Equal(t, 200, w.Code)
+    // 验证响应内容
+}
+```
+
+#### 集成测试
+```go
+func TestUserAPI_Integration(t *testing.T) {
+    // 启动测试服务器
+    router := setupTestRouter()
+    server := httptest.NewServer(router)
+    defer server.Close()
+    
+    // 测试用户注册
+    registerData := map[string]string{
+        "username": "testuser",
+        "email":    "test@example.com",
+        "password": "password123",
+    }
+    
+    resp, err := http.Post(
+        server.URL+"/api/auth/register",
+        "application/json",
+        strings.NewReader(toJSON(registerData)),
+    )
+    
+    assert.NoError(t, err)
+    assert.Equal(t, 201, resp.StatusCode)
+}
+```
+
+## 安全最佳实践
+
+### 输入安全
+- 验证所有输入参数
+- 防止 SQL 注入
+- 防止 XSS 攻击
+- 限制文件上传类型和大小
+
+### 认证安全
+- 使用强密码策略
+- 实现账户锁定机制
+- 令牌过期时间设置
+- 安全的密码存储（bcrypt）
+
+### 传输安全
+- 强制使用 HTTPS
+- 设置安全头部
+- 实现 CORS 策略
+- API 访问频率限制
+
+参考 [项目架构总览](mdc:.cursor/rules/project-overview.mdc) 了解整体项目结构。

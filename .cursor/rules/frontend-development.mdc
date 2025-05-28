@@ -1,0 +1,659 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Vue 3 前端开发规范
+
+## 概述
+
+本规范针对 JiLang Agent 项目的 Vue 3 前端开发，基于 Composition API、Vite、Tailwind CSS 和 Pinia，提供全面的开发指导和最佳实践。
+
+## 项目架构
+
+### 目录结构
+```
+frontend/src/
+├── api/                    # API调用封装
+├── assets/                 # 静态资源
+├── components/             # 可复用组件
+│   ├── common/            # 通用组件
+│   ├── forms/             # 表单组件
+│   └── layout/            # 布局组件
+├── router/                 # 路由配置
+├── stores/                 # Pinia状态管理
+├── utils/                  # 工具函数
+├── views/                  # 页面视图
+├── App.vue                 # 根组件
+└── main.js                 # 应用入口
+```
+
+## 核心文件引用
+
+### 应用入口和配置
+- 应用入口: [main.js](mdc:frontend/src/main.js)
+- 根组件: [App.vue](mdc:frontend/src/App.vue)
+- Vite配置: [vite.config.js](mdc:frontend/vite.config.js)
+- Tailwind配置: [tailwind.config.js](mdc:frontend/tailwind.config.js)
+
+### 路由和状态管理
+- 路由配置: [index.js](mdc:frontend/src/router/index.js)
+- 用户状态: [user.js](mdc:frontend/src/stores/user.js)
+- 工作流状态: [workflow.js](mdc:frontend/src/stores/workflow.js)
+
+### API封装
+- API基础配置: [index.js](mdc:frontend/src/api/index.js)
+- 认证API: [authApi.js](mdc:frontend/src/api/authApi.js)
+- 用户API: [userApi.js](mdc:frontend/src/api/userApi.js)
+- 工作流API: [workflowApi.js](mdc:frontend/src/api/workflowApi.js)
+- 代理API: [agentApi.js](mdc:frontend/src/api/agentApi.js)
+- 执行API: [executionApi.js](mdc:frontend/src/api/executionApi.js)
+- 统计API: [statsApi.js](mdc:frontend/src/api/statsApi.js)
+
+### 主要页面视图
+- 登录页面: [LoginView.vue](mdc:frontend/src/views/LoginView.vue)
+- 仪表盘: [DashboardView.vue](mdc:frontend/src/views/DashboardView.vue)
+- 工作流管理: [WorkflowView.vue](mdc:frontend/src/views/WorkflowView.vue)
+- 代理市场: [AgentView.vue](mdc:frontend/src/views/AgentView.vue)
+- 执行历史: [ExecutionView.vue](mdc:frontend/src/views/ExecutionView.vue)
+- 设置页面: [SettingsView.vue](mdc:frontend/src/views/SettingsView.vue)
+
+### 布局和组件
+- 主布局: [AppLayout.vue](mdc:frontend/src/components/layout/AppLayout.vue)
+- 侧边栏: [Sidebar.vue](mdc:frontend/src/components/layout/Sidebar.vue)
+- 顶部导航: [Header.vue](mdc:frontend/src/components/layout/Header.vue)
+
+## 开发规范
+
+### Vue 3 Composition API 规范
+
+#### 组件结构
+```vue
+<template>
+  <!-- 模板内容 -->
+</template>
+
+<script setup>
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+
+// Props 定义
+const props = defineProps({
+  title: {
+    type: String,
+    required: true
+  },
+  data: {
+    type: Array,
+    default: () => []
+  }
+})
+
+// Emits 定义
+const emit = defineEmits(['update', 'delete'])
+
+// 响应式数据
+const loading = ref(false)
+const form = reactive({
+  name: '',
+  email: ''
+})
+
+// 计算属性
+const isValid = computed(() => {
+  return form.name && form.email
+})
+
+// 方法
+const handleSubmit = async () => {
+  loading.value = true
+  try {
+    // 处理逻辑
+    emit('update', form)
+  } catch (error) {
+    console.error('提交失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 生命周期
+onMounted(() => {
+  // 初始化逻辑
+})
+</script>
+
+<style scoped>
+/* 组件样式 */
+</style>
+```
+
+#### 组合式函数 (Composables)
+```javascript
+// composables/useApi.js
+import { ref } from 'vue'
+import { api } from '@/api'
+
+export function useApi() {
+  const loading = ref(false)
+  const error = ref(null)
+
+  const request = async (apiCall) => {
+    loading.value = true
+    error.value = null
+    
+    try {
+      const response = await apiCall()
+      return response.data
+    } catch (err) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return {
+    loading,
+    error,
+    request
+  }
+}
+```
+
+### 命名约定
+
+#### 文件命名
+- **组件文件**: PascalCase，如 `UserProfile.vue`
+- **页面文件**: PascalCase + View后缀，如 `DashboardView.vue`
+- **工具文件**: camelCase，如 `formatDate.js`
+- **API文件**: camelCase + Api后缀，如 `userApi.js`
+
+#### 组件命名
+```vue
+<!-- 好的命名 -->
+<UserProfile />
+<WorkflowCard />
+<DataTable />
+
+<!-- 避免的命名 -->
+<User />
+<Card />
+<Table />
+```
+
+#### 变量和函数命名
+```javascript
+// 响应式数据
+const userList = ref([])
+const isLoading = ref(false)
+const hasError = ref(false)
+
+// 函数命名
+const fetchUserData = async () => {}
+const handleUserClick = () => {}
+const validateForm = () => {}
+```
+
+### Tailwind CSS 使用规范
+
+#### 响应式设计
+```vue
+<template>
+  <div class="
+    w-full 
+    px-4 sm:px-6 lg:px-8
+    py-4 sm:py-6
+    grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3
+    gap-4 sm:gap-6
+  ">
+    <!-- 内容 -->
+  </div>
+</template>
+```
+
+#### 组件样式组织
+```vue
+<template>
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">{{ title }}</h3>
+    </div>
+    <div class="card-content">
+      <!-- 内容 -->
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.card {
+  @apply bg-white rounded-lg shadow-md border border-gray-200;
+}
+
+.card-header {
+  @apply px-6 py-4 border-b border-gray-200;
+}
+
+.card-title {
+  @apply text-lg font-semibold text-gray-900;
+}
+
+.card-content {
+  @apply p-6;
+}
+</style>
+```
+
+#### 主题色彩系统
+```javascript
+// tailwind.config.js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: '#eff6ff',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8'
+        },
+        success: '#10b981',
+        warning: '#f59e0b',
+        error: '#ef4444'
+      }
+    }
+  }
+}
+```
+
+### Pinia 状态管理规范
+
+#### Store 定义
+```javascript
+// stores/user.js
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import { userApi } from '@/api/userApi'
+
+export const useUserStore = defineStore('user', () => {
+  // 状态
+  const user = ref(null)
+  const token = ref(localStorage.getItem('token'))
+  const loading = ref(false)
+
+  // 计算属性
+  const isAuthenticated = computed(() => !!token.value)
+  const userName = computed(() => user.value?.name || '')
+
+  // 动作
+  const login = async (credentials) => {
+    loading.value = true
+    try {
+      const response = await userApi.login(credentials)
+      token.value = response.token
+      user.value = response.user
+      localStorage.setItem('token', response.token)
+    } catch (error) {
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const logout = () => {
+    user.value = null
+    token.value = null
+    localStorage.removeItem('token')
+  }
+
+  const fetchProfile = async () => {
+    if (!token.value) return
+    
+    try {
+      const response = await userApi.getProfile()
+      user.value = response
+    } catch (error) {
+      console.error('获取用户信息失败:', error)
+    }
+  }
+
+  return {
+    // 状态
+    user,
+    token,
+    loading,
+    // 计算属性
+    isAuthenticated,
+    userName,
+    // 动作
+    login,
+    logout,
+    fetchProfile
+  }
+})
+```
+
+### API 调用规范
+
+#### API 封装
+```javascript
+// api/userApi.js
+import { api } from './index'
+
+export const userApi = {
+  // 获取用户列表
+  getUsers: (params = {}) => {
+    return api.get('/users', { params })
+  },
+
+  // 获取用户详情
+  getUser: (id) => {
+    return api.get(`/users/${id}`)
+  },
+
+  // 创建用户
+  createUser: (data) => {
+    return api.post('/users', data)
+  },
+
+  // 更新用户
+  updateUser: (id, data) => {
+    return api.put(`/users/${id}`, data)
+  },
+
+  // 删除用户
+  deleteUser: (id) => {
+    return api.delete(`/users/${id}`)
+  }
+}
+```
+
+#### 错误处理
+```javascript
+// api/index.js
+import axios from 'axios'
+import { useUserStore } from '@/stores/user'
+import { ElMessage } from 'element-plus'
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  timeout: 10000
+})
+
+// 请求拦截器
+api.interceptors.request.use(
+  (config) => {
+    const userStore = useUserStore()
+    if (userStore.token) {
+      config.headers.Authorization = `Bearer ${userStore.token}`
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// 响应拦截器
+api.interceptors.response.use(
+  (response) => {
+    return response.data
+  },
+  (error) => {
+    const { response } = error
+    
+    if (response?.status === 401) {
+      const userStore = useUserStore()
+      userStore.logout()
+      router.push('/login')
+    } else if (response?.status >= 500) {
+      ElMessage.error('服务器错误，请稍后重试')
+    } else if (response?.data?.message) {
+      ElMessage.error(response.data.message)
+    }
+    
+    return Promise.reject(error)
+  }
+)
+
+export { api }
+```
+
+### 表单处理规范
+
+#### 表单验证
+```vue
+<template>
+  <form @submit.prevent="handleSubmit" class="space-y-6">
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        用户名
+      </label>
+      <input
+        v-model="form.username"
+        type="text"
+        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+        :class="{ 'border-red-500': errors.username }"
+      />
+      <p v-if="errors.username" class="mt-1 text-sm text-red-600">
+        {{ errors.username }}
+      </p>
+    </div>
+    
+    <button
+      type="submit"
+      :disabled="!isValid || loading"
+      class="w-full btn-primary"
+    >
+      {{ loading ? '提交中...' : '提交' }}
+    </button>
+  </form>
+</template>
+
+<script setup>
+import { reactive, computed } from 'vue'
+
+const form = reactive({
+  username: '',
+  email: '',
+  password: ''
+})
+
+const errors = reactive({})
+
+const isValid = computed(() => {
+  return form.username && form.email && form.password && !Object.keys(errors).length
+})
+
+const validateForm = () => {
+  // 清空错误
+  Object.keys(errors).forEach(key => delete errors[key])
+  
+  if (!form.username) {
+    errors.username = '用户名不能为空'
+  } else if (form.username.length < 3) {
+    errors.username = '用户名至少3个字符'
+  }
+  
+  if (!form.email) {
+    errors.email = '邮箱不能为空'
+  } else if (!/\S+@\S+\.\S+/.test(form.email)) {
+    errors.email = '邮箱格式不正确'
+  }
+  
+  return Object.keys(errors).length === 0
+}
+
+const handleSubmit = async () => {
+  if (!validateForm()) return
+  
+  // 提交逻辑
+}
+</script>
+```
+
+### 路由管理规范
+
+#### 路由配置
+```javascript
+// router/index.js
+import { createRouter, createWebHistory } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+
+const routes = [
+  {
+    path: '/',
+    redirect: '/dashboard'
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/LoginView.vue'),
+    meta: { requiresGuest: true }
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('@/views/DashboardView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/workflows',
+    name: 'Workflows',
+    component: () => import('@/views/WorkflowView.vue'),
+    meta: { requiresAuth: true }
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+// 路由守卫
+router.beforeEach((to, from, next) => {
+  const userStore = useUserStore()
+  
+  if (to.meta.requiresAuth && !userStore.isAuthenticated) {
+    next('/login')
+  } else if (to.meta.requiresGuest && userStore.isAuthenticated) {
+    next('/dashboard')
+  } else {
+    next()
+  }
+})
+
+export default router
+```
+
+### 性能优化
+
+#### 懒加载
+```javascript
+// 路由懒加载
+const Dashboard = () => import('@/views/DashboardView.vue')
+
+// 组件懒加载
+import { defineAsyncComponent } from 'vue'
+const AsyncComponent = defineAsyncComponent(() => import('./AsyncComponent.vue'))
+```
+
+#### 虚拟滚动
+```vue
+<template>
+  <div class="virtual-list" ref="container">
+    <div
+      v-for="item in visibleItems"
+      :key="item.id"
+      class="list-item"
+    >
+      {{ item.name }}
+    </div>
+  </div>
+</template>
+```
+
+### 测试规范
+
+#### 单元测试
+```javascript
+// tests/components/UserCard.test.js
+import { mount } from '@vue/test-utils'
+import UserCard from '@/components/UserCard.vue'
+
+describe('UserCard', () => {
+  it('renders user information correctly', () => {
+    const user = { name: 'John Doe', email: 'john@example.com' }
+    const wrapper = mount(UserCard, {
+      props: { user }
+    })
+    
+    expect(wrapper.text()).toContain('John Doe')
+    expect(wrapper.text()).toContain('john@example.com')
+  })
+})
+```
+
+### 构建和部署
+
+#### 环境配置
+```javascript
+// .env.development
+VITE_API_BASE_URL=http://localhost:8080/api
+VITE_APP_TITLE=JiLang Agent (开发环境)
+
+// .env.production
+VITE_API_BASE_URL=https://api.jilang.com
+VITE_APP_TITLE=JiLang Agent
+```
+
+#### 构建优化
+```javascript
+// vite.config.js
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+
+export default defineConfig({
+  plugins: [vue()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['vue', 'vue-router', 'pinia'],
+          ui: ['element-plus']
+        }
+      }
+    }
+  }
+})
+```
+
+## 开发工具和命令
+
+### 常用命令
+```bash
+# 开发服务器
+npm run dev
+
+# 构建生产版本
+npm run build
+
+# 预览构建结果
+npm run preview
+
+# 代码检查
+npm run lint
+
+# 运行测试
+npm run test
+```
+
+### 推荐的 VS Code 插件
+- Vue Language Features (Volar)
+- TypeScript Vue Plugin (Volar)
+- Tailwind CSS IntelliSense
+- ESLint
+- Prettier
+
+参考 [项目架构总览](mdc:.cursor/rules/project-overview.mdc) 了解整体项目结构。
