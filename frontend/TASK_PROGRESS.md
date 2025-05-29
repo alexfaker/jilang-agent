@@ -165,3 +165,48 @@ syncSettingsAfterLogin() {
 
 **待检查**: 8个页面 (61.5%)
 - 🔄 Login.vue (需要小修改：品牌名称和微信图标)
+
+### 🔧 品牌组件重构进度 (2025-05-29)
+
+**目标**: 将品牌名称抽取为全局组件，方便后续统一管理和替换
+
+**已完成步骤**:
+- ✅ 创建 BrandName.vue 组件 (支持多种尺寸和样式)
+- ✅ 创建 BrandLogo.vue 组件 (图标+名称组合)
+- ✅ 更新 Login.vue 页面使用新品牌组件
+- ✅ 更新 Register.vue 页面使用新品牌组件
+- ✅ 更新 HomePage.vue 页面使用新品牌组件
+- ✅ 更新 Layout.vue 组件使用新品牌组件
+- ✅ 更新 SecuritySettings.vue 页面使用新品牌组件
+- ✅ 创建 brand.js store 集中管理品牌信息
+- ✅ 更新 App.vue 使用品牌store
+- ✅ 创建 brand.js 配置文件
+- ✅ 检查所有页面，确认品牌组件替换完成
+
+**技术实现**:
+- 组件位置: `src/components/common/BrandName.vue` 和 `BrandLogo.vue`
+- 状态管理: `src/stores/brand.js` 集中管理品牌信息
+- 配置文件: `src/config/brand.js` 品牌配置和便捷函数
+- 支持属性: size, weight, color, layout, spacing 等
+- 集中管理品牌名称，便于后续替换
+
+**品牌组件使用示例**:
+```vue
+<!-- 基础品牌名称 -->
+<BrandName />
+
+<!-- 自定义样式的品牌名称 -->
+<BrandName size="lg" weight="semibold" color="indigo-600" />
+
+<!-- 品牌Logo组合 -->
+<BrandLogo size="base" />
+```
+
+**后续替换品牌的步骤**:
+1. 修改 `src/stores/brand.js` 中的 `brandName` 值
+2. 或者修改 `src/config/brand.js` 中的配置并更新store
+3. 所有使用品牌组件的页面将自动更新
+
+---
+
+**最后更新**: 2025-05-29 11:00

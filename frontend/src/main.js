@@ -12,58 +12,58 @@ import notify from './utils/notification'
 
 // 异步初始化应用
 async function initApp() {
-  // 创建应用
-  const app = createApp(App)
+// 创建应用
+const app = createApp(App)
 
-  // 注册Pinia
-  const pinia = createPinia()
-  app.use(pinia)
+// 注册Pinia
+const pinia = createPinia()
+app.use(pinia)
 
-  // 初始化设置
-  const settingsStore = useSettingsStore(pinia)
+// 初始化设置
+const settingsStore = useSettingsStore(pinia)
   try {
-    await settingsStore.initSettings()
+await settingsStore.initSettings()
   } catch (error) {
     console.error('设置初始化失败:', error)
   }
 
-  // 初始化用户状态
-  const userStore = useUserStore(pinia)
-  userStore.initializeFromLocalStorage()
+// 初始化用户状态
+const userStore = useUserStore(pinia)
+userStore.initializeFromLocalStorage()
 
-  // 注册路由
-  app.use(router)
+// 注册路由
+app.use(router)
 
-  // 注册Toast通知
-  app.use(Toast, {
-    transition: "Vue-Toastification__fade",
-    maxToasts: 5,
-    newestOnTop: true,
-    position: "top-right",
-    timeout: 5000,
-    closeOnClick: true,
-    pauseOnFocusLoss: true,
-    pauseOnHover: true,
-    draggable: true,
-    draggablePercent: 0.6,
-    showCloseButtonOnHover: false,
-    hideProgressBar: false,
-    closeButton: "button",
-    icon: true,
-    rtl: false
-  })
+// 注册Toast通知
+app.use(Toast, {
+  transition: "Vue-Toastification__fade",
+  maxToasts: 5,
+  newestOnTop: true,
+  position: "top-right",
+  timeout: 5000,
+  closeOnClick: true,
+  pauseOnFocusLoss: true,
+  pauseOnHover: true,
+  draggable: true,
+  draggablePercent: 0.6,
+  showCloseButtonOnHover: false,
+  hideProgressBar: false,
+  closeButton: "button",
+  icon: true,
+  rtl: false
+})
 
-  // 将设置存储作为全局属性
-  app.config.globalProperties.$settings = settingsStore
+// 将设置存储作为全局属性
+app.config.globalProperties.$settings = settingsStore
 
-  // 将用户存储作为全局属性
-  app.config.globalProperties.$user = userStore
+// 将用户存储作为全局属性
+app.config.globalProperties.$user = userStore
 
-  // 将通知工具作为全局属性
-  app.config.globalProperties.$notify = notify
+// 将通知工具作为全局属性
+app.config.globalProperties.$notify = notify
 
-  // 挂载应用
-  app.mount('#app')
+// 挂载应用
+app.mount('#app') 
 }
 
 // 启动应用

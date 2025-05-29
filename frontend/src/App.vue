@@ -9,8 +9,10 @@ import { computed, onMounted, onUnmounted, watch } from 'vue';
 import { useSettingsStore } from './stores/settings';
 import { useToast } from 'vue-toastification';
 import notify from './utils/notification';
+import { useBrandStore } from './stores/brand';
 
 const settingsStore = useSettingsStore();
+const brandStore = useBrandStore();
 const toast = useToast();
 
 // 是否为深色模式
@@ -49,7 +51,7 @@ onMounted(() => {
   
   // 初始化通知，显示欢迎信息
   setTimeout(() => {
-    notify.info('欢迎使用JiLang Agent系统');
+    notify.info(brandStore.welcomeMessage);
   }, 1000);
 });
 

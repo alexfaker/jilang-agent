@@ -5,9 +5,8 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
           <div class="flex items-center">
-            <router-link to="/" class="flex-shrink-0 flex items-center">
-              <CpuChipIcon class="h-8 w-8 text-indigo-600 mr-2" />
-              <span class="text-xl font-bold text-gray-800">JiLang Agent</span>
+            <router-link to="/" class="flex-shrink-0">
+              <BrandLogo size="base" />
             </router-link>
           </div>
           <div class="flex items-center">
@@ -28,8 +27,7 @@
         <div class="auth-card bg-white p-8 rounded-2xl shadow-lg">
           <!-- Logo和登录标题 -->
           <div class="flex items-center justify-center mb-8">
-            <CpuChipIcon class="h-10 w-10 text-indigo-600 mr-3" />
-            <h2 class="text-3xl font-bold text-gray-800">JiLang Agent</h2>
+            <BrandLogo size="lg" spacing="loose" />
           </div>
           
           <!-- 错误提示 -->
@@ -204,13 +202,13 @@ import { useUserStore } from '../../stores/user';
 import { useToast } from 'vue-toastification';
 import notify from '../../utils/notification';
 import { 
-  CpuChipIcon, 
   EnvelopeIcon, 
   LockClosedIcon, 
   EyeIcon, 
   EyeSlashIcon,
   ExclamationTriangleIcon 
 } from '@heroicons/vue/24/outline';
+import BrandLogo from '../../components/common/BrandLogo.vue';
 
 const router = useRouter();
 const route = useRoute();

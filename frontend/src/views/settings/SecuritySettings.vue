@@ -9,7 +9,7 @@
     <div class="mt-8">
       <h3 class="text-md font-medium text-gray-900 dark:text-gray-100">API密钥</h3>
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-        使用API密钥可以从外部应用程序和服务访问JiLang Agent。请妥善保管您的密钥，它们具有与您账户相同的权限。
+        使用API密钥可以从外部应用程序和服务访问<BrandName size="sm" weight="normal" color="gray-500 dark:text-gray-400" />。请妥善保管您的密钥，它们具有与您账户相同的权限。
       </p>
 
       <div class="mt-4 flex">
@@ -200,7 +200,7 @@
               </h3>
               <div class="mt-2">
                 <p class="text-sm text-gray-500 dark:text-gray-400">
-                  您确定要撤销此API密钥吗？此操作无法撤销，使用此密钥的应用程序将无法再访问JiLang Agent API。
+                  您确定要撤销此API密钥吗？此操作无法撤销，使用此密钥的应用程序将无法再访问<BrandName size="sm" weight="normal" color="gray-500 dark:text-gray-400" /> API。
                 </p>
               </div>
             </div>
@@ -285,6 +285,7 @@ import { useToast } from 'vue-toastification';
 import { format, formatDistance } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { settingsApi } from '../../api';
+import BrandName from '../../components/common/BrandName.vue';
 
 const toast = useToast();
 

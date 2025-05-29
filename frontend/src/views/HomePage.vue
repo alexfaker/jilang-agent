@@ -5,9 +5,8 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
           <div class="flex items-center">
-            <div class="flex-shrink-0 flex items-center">
-              <CpuChipIcon class="h-8 w-8 text-indigo-600 mr-2" />
-              <span class="text-xl font-bold text-gray-800">JiLang Agent</span>
+            <div class="flex-shrink-0">
+              <BrandLogo size="base" />
             </div>
           </div>
           <div class="flex items-center space-x-4">
@@ -190,7 +189,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 class="text-lg font-semibold mb-4">JiLang Agent</h3>
+            <BrandName size="lg" weight="semibold" />
             <p class="text-gray-400">智能工作流平台，让您轻松创建和管理工作流程。</p>
           </div>
           <div>
@@ -220,7 +219,7 @@
           </div>
         </div>
         <div class="border-t border-gray-700 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p class="text-gray-400">© {{ new Date().getFullYear() }} JiLang Agent. 保留所有权利。</p>
+          <p class="text-gray-400">© {{ new Date().getFullYear() }} <BrandName size="base" weight="normal" color="gray-400" />. 保留所有权利。</p>
           <div class="flex space-x-6 mt-4 md:mt-0">
             <a href="#" class="text-gray-400 hover:text-white transition-colors">
               <LinkIcon class="h-5 w-5" />
@@ -248,6 +247,8 @@ import {
   UserIcon, 
   LinkIcon 
 } from '@heroicons/vue/24/outline'
+import BrandLogo from '../components/common/BrandLogo.vue'
+import BrandName from '../components/common/BrandName.vue'
 
 // 平滑滚动到功能区域
 const scrollToFeatures = (event) => {

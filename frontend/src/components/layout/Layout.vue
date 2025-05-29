@@ -8,8 +8,8 @@
           <div class="flex">
             <!-- Logo -->
             <div class="flex-shrink-0 flex items-center">
-              <router-link to="/" class="text-xl font-bold text-primary-600 dark:text-primary-400">
-                JiLang Agent
+              <router-link to="/">
+                <BrandName size="xl" weight="bold" color="primary-600 dark:text-primary-400" />
               </router-link>
             </div>
             
@@ -178,7 +178,7 @@
     <footer class="bg-white dark:bg-gray-800 shadow-inner mt-auto">
       <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
         <p class="text-center text-sm text-gray-500 dark:text-gray-400">
-          &copy; {{ new Date().getFullYear() }} JiLang Agent. All rights reserved.
+          &copy; {{ new Date().getFullYear() }} <BrandName size="sm" weight="normal" color="gray-500 dark:text-gray-400" />. All rights reserved.
         </p>
       </div>
     </footer>
@@ -191,6 +191,7 @@ import { useRouter } from 'vue-router';
 import { BellIcon, Bars3Icon, XMarkIcon } from '@heroicons/vue/24/outline';
 import { useUserStore } from '../../stores/user';
 import notify from '../../utils/notification';
+import BrandName from '../common/BrandName.vue';
 
 // 路由
 const router = useRouter();
