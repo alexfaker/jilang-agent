@@ -1,0 +1,1 @@
+.spinner[data-v-126cbdbc]{border:2px solid rgba(0,0,0,.1);border-radius:50%;border-top:2px solid #3498db;width:20px;height:20px;animation:spin-126cbdbc 1s linear infinite}@keyframes spin-126cbdbc{0%{transform:rotate(0)}to{transform:rotate(360deg)}}@media (prefers-color-scheme: dark){.spinner[data-v-126cbdbc]{border-color:#ffffff1a;border-top-color:#3498db}}

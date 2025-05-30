@@ -1,0 +1,1 @@
+.animate-spin[data-v-7b16c7f3]{animation:spin-7b16c7f3 1s linear infinite}@keyframes spin-7b16c7f3{0%{transform:rotate(0)}to{transform:rotate(360deg)}}.auth-card[data-v-7b16c7f3]{transition:all .3s ease}.auth-input[data-v-7b16c7f3],.auth-btn[data-v-7b16c7f3]{transition:all .2s ease;height:3rem}.auth-btn[data-v-7b16c7f3]:hover:not(:disabled){transform:translateY(-2px)}

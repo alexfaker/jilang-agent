@@ -1,0 +1,414 @@
+2025-05-31T00:00:43.533+0800	[34mINFO[0m	logger/logger.go:38	日志记录器初始化完成	{"development": true}
+2025-05-31T00:00:43.533+0800	[34mINFO[0m	backend/main.go:29	启动AI工作流平台服务...
+2025-05-31T00:00:46.230+0800	[34mINFO[0m	backend/main.go:43	数据库连接成功
+
+2025/05/31 00:00:46 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[78.243ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:46 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[155.390ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:00:46 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[202.539ms] [33m[rows:-][35m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'jilang_agent' AND table_name = 'users' AND table_type = 'BASE TABLE'[0m
+
+2025/05/31 00:00:46 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[111.925ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:46 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[188.416ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:00:47 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[219.104ms] [33m[rows:-][35m SELECT * FROM `users` LIMIT 1[0m
+
+2025/05/31 00:00:47 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[198.015ms] [34;1m[rows:-][0m SELECT column_name, column_default, is_nullable = 'YES', data_type, character_maximum_length, column_type, column_key, extra, column_comment, numeric_precision, numeric_scale , datetime_precision FROM information_schema.columns WHERE table_schema = 'jilang_agent' AND table_name = 'users' ORDER BY ORDINAL_POSITION
+
+2025/05/31 00:00:47 [32m
+[0m[33m[150.406ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:47 [32m
+[0m[33m[187.267ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:00:47 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[223.445ms] [33m[rows:4][35m 
+SELECT
+	TABLE_NAME,
+	COLUMN_NAME,
+	INDEX_NAME,
+	NON_UNIQUE 
+FROM
+	information_schema.STATISTICS 
+WHERE
+	TABLE_SCHEMA = 'jilang_agent' 
+	AND TABLE_NAME = 'users' 
+ORDER BY
+	INDEX_NAME,
+	SEQ_IN_INDEX[0m
+
+2025/05/31 00:00:48 [32m
+[0m[33m[111.497ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:48 [32m
+[0m[33m[182.572ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:00:48 [32m [33mSLOW SQL >= 200ms
+[0m[31;1m[227.840ms] [33m[rows:-][35m SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE constraint_schema = 'jilang_agent' AND table_name = 'users' AND constraint_name = 'uni_users_user_id'[0m
+
+2025/05/31 00:00:48 [32m
+[0m[33m[107.485ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:48 [32m
+[0m[33m[189.685ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:00:48 [32m [33mSLOW SQL >= 200ms
+[0m[31;1m[211.992ms] [33m[rows:-][35m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'jilang_agent' AND table_name = 'users' AND index_name = 'idx_users_user_id'[0m
+
+2025/05/31 00:00:49 [32m
+[0m[33m[111.554ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:49 [32m [33mSLOW SQL >= 200ms
+[0m[31;1m[235.420ms] [33m[rows:1][35m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1[0m
+
+2025/05/31 00:00:49 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[193.370ms] [34;1m[rows:4][0m 
+SELECT
+	TABLE_NAME,
+	COLUMN_NAME,
+	INDEX_NAME,
+	NON_UNIQUE 
+FROM
+	information_schema.STATISTICS 
+WHERE
+	TABLE_SCHEMA = 'jilang_agent' 
+	AND TABLE_NAME = 'users' 
+ORDER BY
+	INDEX_NAME,
+	SEQ_IN_INDEX
+
+2025/05/31 00:00:49 [32m
+[0m[33m[111.592ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:49 [32m
+[0m[33m[166.767ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:00:50 [32m [33mSLOW SQL >= 200ms
+[0m[31;1m[208.459ms] [33m[rows:-][35m SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE constraint_schema = 'jilang_agent' AND table_name = 'users' AND constraint_name = 'uni_users_username'[0m
+
+2025/05/31 00:00:50 [32m
+[0m[33m[120.997ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:50 [32m [33mSLOW SQL >= 200ms
+[0m[31;1m[213.157ms] [33m[rows:1][35m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1[0m
+
+2025/05/31 00:00:50 [32m [33mSLOW SQL >= 200ms
+[0m[31;1m[249.979ms] [33m[rows:-][35m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'jilang_agent' AND table_name = 'users' AND index_name = 'idx_users_username'[0m
+
+2025/05/31 00:00:50 [32m [33mSLOW SQL >= 200ms
+[0m[31;1m[383.744ms] [33m[rows:-][35m SELECT DATABASE()[0m
+
+2025/05/31 00:00:51 [32m
+[0m[33m[154.384ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:00:51 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[230.862ms] [33m[rows:4][35m 
+SELECT
+	TABLE_NAME,
+	COLUMN_NAME,
+	INDEX_NAME,
+	NON_UNIQUE 
+FROM
+	information_schema.STATISTICS 
+WHERE
+	TABLE_SCHEMA = 'jilang_agent' 
+	AND TABLE_NAME = 'users' 
+ORDER BY
+	INDEX_NAME,
+	SEQ_IN_INDEX[0m
+
+2025/05/31 00:00:51 [32m
+[0m[33m[111.220ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:51 [32m
+[0m[33m[153.135ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:00:51 [32m
+[0m[33m[170.478ms] [34;1m[rows:-][0m SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE constraint_schema = 'jilang_agent' AND table_name = 'users' AND constraint_name = 'uni_users_email'
+
+2025/05/31 00:00:51 [32m
+[0m[33m[111.832ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:52 [32m
+[0m[33m[188.076ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:00:52 [32m [33mSLOW SQL >= 200ms
+[0m[31;1m[219.671ms] [33m[rows:-][35m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'jilang_agent' AND table_name = 'users' AND index_name = 'idx_users_email'[0m
+
+2025/05/31 00:00:52 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[120.660ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:52 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[206.083ms] [33m[rows:1][35m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1[0m
+
+2025/05/31 00:00:52 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[212.237ms] [33m[rows:-][35m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'jilang_agent' AND table_name = 'users' AND index_name = 'idx_users_user_id'[0m
+
+2025/05/31 00:00:52 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[116.559ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:53 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[219.472ms] [33m[rows:1][35m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1[0m
+
+2025/05/31 00:00:53 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[236.161ms] [33m[rows:-][35m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'jilang_agent' AND table_name = 'users' AND index_name = 'idx_users_username'[0m
+
+2025/05/31 00:00:53 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[111.965ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:53 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[219.187ms] [33m[rows:1][35m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1[0m
+
+2025/05/31 00:00:53 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[212.548ms] [33m[rows:-][35m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'jilang_agent' AND table_name = 'users' AND index_name = 'idx_users_email'[0m
+
+2025/05/31 00:00:54 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[106.260ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:54 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[214.237ms] [33m[rows:1][35m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1[0m
+
+2025/05/31 00:00:54 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[217.260ms] [33m[rows:-][35m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'jilang_agent' AND table_name = 'workflows' AND table_type = 'BASE TABLE'[0m
+
+2025/05/31 00:00:54 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[109.121ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:54 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[216.236ms] [33m[rows:1][35m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1[0m
+
+2025/05/31 00:00:55 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[214.038ms] [33m[rows:-][35m SELECT * FROM `workflows` LIMIT 1[0m
+
+2025/05/31 00:00:55 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[213.938ms] [33m[rows:-][35m SELECT column_name, column_default, is_nullable = 'YES', data_type, character_maximum_length, column_type, column_key, extra, column_comment, numeric_precision, numeric_scale , datetime_precision FROM information_schema.columns WHERE table_schema = 'jilang_agent' AND table_name = 'workflows' ORDER BY ORDINAL_POSITION[0m
+
+2025/05/31 00:00:55 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[103.464ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:55 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[193.358ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:00:55 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[245.814ms] [33m[rows:-][35m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'jilang_agent' AND table_name = 'workflows' AND index_name = 'idx_workflows_agent_id'[0m
+
+2025/05/31 00:00:55 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[109.058ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:56 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[219.310ms] [33m[rows:1][35m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1[0m
+
+2025/05/31 00:00:56 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[209.142ms] [33m[rows:-][35m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'jilang_agent' AND table_name = 'workflows' AND index_name = 'idx_workflows_user_id'[0m
+
+2025/05/31 00:00:56 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[106.626ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:56 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[218.683ms] [33m[rows:1][35m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1[0m
+
+2025/05/31 00:00:56 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[190.193ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'jilang_agent' AND table_name = 'workflow_executions' AND table_type = 'BASE TABLE'
+
+2025/05/31 00:00:56 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[107.856ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:57 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[155.500ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:00:57 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[243.958ms] [33m[rows:-][35m SELECT * FROM `workflow_executions` LIMIT 1[0m
+
+2025/05/31 00:00:57 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[225.208ms] [33m[rows:-][35m SELECT column_name, column_default, is_nullable = 'YES', data_type, character_maximum_length, column_type, column_key, extra, column_comment, numeric_precision, numeric_scale , datetime_precision FROM information_schema.columns WHERE table_schema = 'jilang_agent' AND table_name = 'workflow_executions' ORDER BY ORDINAL_POSITION[0m
+
+2025/05/31 00:00:57 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[111.269ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:57 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[152.700ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:00:58 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[182.831ms] [34;1m[rows:-][0m SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE constraint_schema = 'jilang_agent' AND table_name = 'workflow_executions' AND constraint_name = 'fk_workflow_executions_workflow'
+
+2025/05/31 00:00:58 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[111.749ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:58 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[199.503ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:00:58 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[156.562ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'jilang_agent' AND table_name = 'workflow_executions' AND index_name = 'idx_workflow_executions_workflow_id'
+
+2025/05/31 00:00:58 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[88.535ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:58 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[188.884ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:00:59 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[222.903ms] [33m[rows:-][35m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'jilang_agent' AND table_name = 'workflow_executions' AND index_name = 'idx_workflow_executions_user_id'[0m
+
+2025/05/31 00:00:59 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[114.056ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:59 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[187.921ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:00:59 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[200.792ms] [33m[rows:-][35m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'jilang_agent' AND table_name = 'workflow_executions' AND index_name = 'idx_workflow_executions_agent_id'[0m
+
+2025/05/31 00:00:59 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[113.636ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:00:59 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[223.599ms] [33m[rows:1][35m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1[0m
+
+2025/05/31 00:01:00 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[188.875ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'jilang_agent' AND table_name = 'agents' AND table_type = 'BASE TABLE'
+
+2025/05/31 00:01:00 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[112.287ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:01:00 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[187.699ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:01:00 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[214.313ms] [33m[rows:-][35m SELECT * FROM `agents` LIMIT 1[0m
+
+2025/05/31 00:01:00 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[209.916ms] [33m[rows:-][35m SELECT column_name, column_default, is_nullable = 'YES', data_type, character_maximum_length, column_type, column_key, extra, column_comment, numeric_precision, numeric_scale , datetime_precision FROM information_schema.columns WHERE table_schema = 'jilang_agent' AND table_name = 'agents' ORDER BY ORDINAL_POSITION[0m
+
+2025/05/31 00:01:00 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[114.203ms] [34;1m[rows:0][0m ALTER TABLE `agents` MODIFY COLUMN `rating` double DEFAULT 0
+
+2025/05/31 00:01:01 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[112.969ms] [34;1m[rows:0][0m ALTER TABLE `agents` MODIFY COLUMN `is_public` boolean DEFAULT false
+
+2025/05/31 00:01:01 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[112.186ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:01:01 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[163.039ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:01:01 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[188.972ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'jilang_agent' AND table_name = 'agents' AND index_name = 'idx_agents_category'
+
+2025/05/31 00:01:01 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[77.225ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:01:01 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[158.016ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:01:01 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[157.789ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'jilang_agent' AND table_name = 'points_transactions' AND table_type = 'BASE TABLE'
+
+2025/05/31 00:01:02 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[111.029ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:01:02 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[155.634ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1
+
+2025/05/31 00:01:02 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[185.966ms] [34;1m[rows:-][0m SELECT * FROM `points_transactions` LIMIT 1
+
+2025/05/31 00:01:02 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[221.182ms] [33m[rows:-][35m SELECT column_name, column_default, is_nullable = 'YES', data_type, character_maximum_length, column_type, column_key, extra, column_comment, numeric_precision, numeric_scale , datetime_precision FROM information_schema.columns WHERE table_schema = 'jilang_agent' AND table_name = 'points_transactions' ORDER BY ORDINAL_POSITION[0m
+
+2025/05/31 00:01:02 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[111.404ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:01:02 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[227.707ms] [33m[rows:1][35m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1[0m
+
+2025/05/31 00:01:03 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[213.353ms] [33m[rows:-][35m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'jilang_agent' AND table_name = 'points_transactions' AND index_name = 'idx_points_transactions_related_id'[0m
+
+2025/05/31 00:01:03 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[112.486ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:01:03 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[223.697ms] [33m[rows:1][35m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1[0m
+
+2025/05/31 00:01:03 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[274.238ms] [33m[rows:-][35m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'jilang_agent' AND table_name = 'points_transactions' AND index_name = 'idx_points_transactions_user_id'[0m
+
+2025/05/31 00:01:03 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[114.094ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2025/05/31 00:01:04 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [33mSLOW SQL >= 200ms
+[0m[31;1m[245.007ms] [33m[rows:1][35m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'jilang_agent%' ORDER BY SCHEMA_NAME='jilang_agent' DESC,SCHEMA_NAME limit 1[0m
+
+2025/05/31 00:01:04 [32m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77
+[0m[33m[197.779ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'jilang_agent' AND table_name = 'recharge_orders' AND table_type = 'BASE TABLE'
+
+2025/05/31 00:01:04 [31;1m/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/pkg/database/gorm.go:77 [35;1mError 1170 (42000): BLOB/TEXT column 'order_no' used in key specification without a key length
+[0m[33m[112.620ms] [34;1m[rows:0][0m CREATE TABLE `recharge_orders` (`id` bigint AUTO_INCREMENT,`user_id` varchar(191) NOT NULL,`order_no` longtext NOT NULL,`amount` bigint NOT NULL,`points` bigint NOT NULL,`payment_method` varchar(20) NOT NULL,`status` varchar(20) NOT NULL DEFAULT 'pending',`payment_id` varchar(191),`paid_at` datetime(3) NULL,`created_at` datetime(3) NULL,`updated_at` datetime(3) NULL,PRIMARY KEY (`id`),INDEX `idx_recharge_orders_user_id` (`user_id`),UNIQUE INDEX `idx_recharge_orders_order_no` (`order_no`),INDEX `idx_recharge_orders_payment_id` (`payment_id`))
+2025-05-31T00:01:04.401+0800	[33mWARN[0m	backend/main.go:48	数据库自动迁移失败	{"error": "Error 1170 (42000): BLOB/TEXT column 'order_no' used in key specification without a key length"}
+main.main
+	/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/main.go:48
+runtime.main
+	/opt/homebrew/opt/go@1.23/libexec/src/runtime/proc.go:272
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /static/*filepath         --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (5 handlers)
+[GIN-debug] HEAD   /static/*filepath         --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (5 handlers)
+[GIN-debug] GET    /health                   --> github.com/alexfaker/jilang-agent/api/routes.InitGinRoutes.func1 (5 handlers)
+[GIN-debug] POST   /api/auth/register        --> github.com/alexfaker/jilang-agent/api/handlers.(*GinAuthHandler).Register-fm (5 handlers)
+[GIN-debug] POST   /api/auth/login           --> github.com/alexfaker/jilang-agent/api/handlers.(*GinAuthHandler).Login-fm (5 handlers)
+[GIN-debug] POST   /api/auth/refresh         --> github.com/alexfaker/jilang-agent/api/handlers.(*GinAuthHandler).RefreshToken-fm (5 handlers)
+[GIN-debug] GET    /api/agents               --> github.com/alexfaker/jilang-agent/api/handlers.(*GinAgentHandler).GetAgents-fm (5 handlers)
+[GIN-debug] GET    /api/agents/:id           --> github.com/alexfaker/jilang-agent/api/handlers.(*GinAgentHandler).GetAgent-fm (5 handlers)
+[GIN-debug] GET    /api/agent-categories     --> github.com/alexfaker/jilang-agent/api/handlers.(*GinAgentHandler).GetAgentCategories-fm (5 handlers)
+[GIN-debug] GET    /api/recharge/packages    --> github.com/alexfaker/jilang-agent/api/handlers.(*GinRechargeHandler).GetRechargePackages-fm (5 handlers)
+[GIN-debug] GET    /api/user/profile         --> github.com/alexfaker/jilang-agent/api/handlers.(*GinUserHandler).GetUserProfile-fm (6 handlers)
+[GIN-debug] PUT    /api/user/profile         --> github.com/alexfaker/jilang-agent/api/handlers.(*GinUserHandler).UpdateUserProfile-fm (6 handlers)
+[GIN-debug] POST   /api/user/change-password --> github.com/alexfaker/jilang-agent/api/handlers.(*GinUserHandler).ChangePassword-fm (6 handlers)
+[GIN-debug] GET    /api/user/:id             --> github.com/alexfaker/jilang-agent/api/handlers.(*GinUserHandler).GetUserByID-fm (6 handlers)
+[GIN-debug] GET    /api/users/me             --> github.com/alexfaker/jilang-agent/api/handlers.(*GinUserHandler).GetCurrentUser-fm (6 handlers)
+[GIN-debug] PUT    /api/users/me             --> github.com/alexfaker/jilang-agent/api/handlers.(*GinUserHandler).UpdateUserProfile-fm (6 handlers)
+[GIN-debug] POST   /api/users/me/avatar      --> github.com/alexfaker/jilang-agent/api/handlers.(*GinUserHandler).UploadAvatar-fm (6 handlers)
+[GIN-debug] PUT    /api/users/me/password    --> github.com/alexfaker/jilang-agent/api/handlers.(*GinUserHandler).ChangePassword-fm (6 handlers)
+[GIN-debug] GET    /api/settings             --> github.com/alexfaker/jilang-agent/api/handlers.(*GinSettingsHandler).GetSettings-fm (6 handlers)
+[GIN-debug] PUT    /api/settings             --> github.com/alexfaker/jilang-agent/api/handlers.(*GinSettingsHandler).UpdateSettings-fm (6 handlers)
+[GIN-debug] GET    /api/workflows            --> github.com/alexfaker/jilang-agent/api/handlers.(*GinWorkflowHandler).GetWorkflows-fm (6 handlers)
+[GIN-debug] POST   /api/workflows            --> github.com/alexfaker/jilang-agent/api/handlers.(*GinWorkflowHandler).CreateWorkflow-fm (6 handlers)
+[GIN-debug] GET    /api/workflows/:id        --> github.com/alexfaker/jilang-agent/api/handlers.(*GinWorkflowHandler).GetWorkflow-fm (6 handlers)
+[GIN-debug] PUT    /api/workflows/:id        --> github.com/alexfaker/jilang-agent/api/handlers.(*GinWorkflowHandler).UpdateWorkflow-fm (6 handlers)
+[GIN-debug] DELETE /api/workflows/:id        --> github.com/alexfaker/jilang-agent/api/handlers.(*GinWorkflowHandler).DeleteWorkflow-fm (6 handlers)
+[GIN-debug] GET    /api/executions           --> github.com/alexfaker/jilang-agent/api/handlers.(*GinExecutionHandler).GetExecutions-fm (6 handlers)
+[GIN-debug] POST   /api/workflows/:id/execute --> github.com/alexfaker/jilang-agent/api/handlers.(*GinExecutionHandler).ExecuteWorkflow-fm (6 handlers)
+[GIN-debug] GET    /api/executions/:id       --> github.com/alexfaker/jilang-agent/api/handlers.(*GinExecutionHandler).GetExecution-fm (6 handlers)
+[GIN-debug] DELETE /api/executions/:id       --> github.com/alexfaker/jilang-agent/api/handlers.(*GinExecutionHandler).DeleteExecution-fm (6 handlers)
+[GIN-debug] POST   /api/purchase/agent       --> github.com/alexfaker/jilang-agent/api/handlers.(*GinPurchaseHandler).PurchaseAgent-fm (6 handlers)
+[GIN-debug] GET    /api/purchase/history     --> github.com/alexfaker/jilang-agent/api/handlers.(*GinPurchaseHandler).GetPurchaseHistory-fm (6 handlers)
+[GIN-debug] POST   /api/recharge/order       --> github.com/alexfaker/jilang-agent/api/handlers.(*GinRechargeHandler).CreateRechargeOrder-fm (6 handlers)
+[GIN-debug] GET    /api/recharge/orders      --> github.com/alexfaker/jilang-agent/api/handlers.(*GinRechargeHandler).GetRechargeOrders-fm (6 handlers)
+[GIN-debug] GET    /api/recharge/orders/:id  --> github.com/alexfaker/jilang-agent/api/handlers.(*GinRechargeHandler).GetRechargeOrder-fm (6 handlers)
+[GIN-debug] POST   /api/recharge/payment/callback --> github.com/alexfaker/jilang-agent/api/handlers.(*GinRechargeHandler).PaymentCallback-fm (6 handlers)
+[GIN-debug] GET    /api/points/balance       --> github.com/alexfaker/jilang-agent/api/handlers.(*GinPointsHandler).GetPointsBalance-fm (6 handlers)
+[GIN-debug] GET    /api/points/transactions  --> github.com/alexfaker/jilang-agent/api/handlers.(*GinPointsHandler).GetPointsTransactions-fm (6 handlers)
+[GIN-debug] GET    /api/points/transactions/:id --> github.com/alexfaker/jilang-agent/api/handlers.(*GinPointsHandler).GetPointsTransaction-fm (6 handlers)
+[GIN-debug] GET    /api/points/statistics    --> github.com/alexfaker/jilang-agent/api/handlers.(*GinPointsHandler).GetPointsStatistics-fm (6 handlers)
+[GIN-debug] POST   /api/admin/agents         --> github.com/alexfaker/jilang-agent/api/handlers.(*GinAgentHandler).CreateAgent-fm (6 handlers)
+[GIN-debug] PUT    /api/admin/agents/:id     --> github.com/alexfaker/jilang-agent/api/handlers.(*GinAgentHandler).UpdateAgent-fm (6 handlers)
+[GIN-debug] DELETE /api/admin/agents/:id     --> github.com/alexfaker/jilang-agent/api/handlers.(*GinAgentHandler).DeleteAgent-fm (6 handlers)
+[GIN-debug] GET    /api/stats/dashboard      --> github.com/alexfaker/jilang-agent/api/handlers.(*GinStatsHandler).GetDashboardStats-fm (6 handlers)
+[GIN-debug] GET    /api/stats/workflows      --> github.com/alexfaker/jilang-agent/api/handlers.(*GinStatsHandler).GetWorkflowStats-fm (6 handlers)
+[GIN-debug] GET    /api/stats/executions     --> github.com/alexfaker/jilang-agent/api/handlers.(*GinStatsHandler).GetExecutionStats-fm (6 handlers)
+2025-05-31T00:01:04.402+0800	[34mINFO[0m	backend/main.go:68	服务器启动	{"地址": "localhost:8080"}
+2025-05-31T00:01:04.404+0800	[31mFATAL[0m	backend/main.go:70	服务器启动失败	{"error": "listen tcp 127.0.0.1:8080: bind: address already in use"}
+main.main
+	/Users/yananqi/go/src/github.com/alexfaker/jilang-agent/backend/main.go:70
+runtime.main
+	/opt/homebrew/opt/go@1.23/libexec/src/runtime/proc.go:272
