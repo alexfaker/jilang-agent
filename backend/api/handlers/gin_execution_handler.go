@@ -62,10 +62,10 @@ func (h *GinExecutionHandler) GetExecutions(c *gin.Context) {
 		query = query.Where("status = ?", status)
 	}
 	if startTime != "" {
-		query = query.Where("start_time >= ?", startTime)
+		query = query.Where("started_at >= ?", startTime)
 	}
 	if endTime != "" {
-		query = query.Where("end_time <= ?", endTime)
+		query = query.Where("completed_at <= ?", endTime)
 	}
 
 	// 获取总记录数
@@ -74,7 +74,7 @@ func (h *GinExecutionHandler) GetExecutions(c *gin.Context) {
 
 	// 获取分页数据
 	var executions []models.WorkflowExecution
-	result := query.Order("start_time DESC").Offset(offset).Limit(pageSize).Find(&executions)
+	result := query.Order("started_at DESC").Offset(offset).Limit(pageSize).Find(&executions)
 	if result.Error != nil {
 		h.Logger.Error("获取执行记录列表失败", zap.Error(result.Error))
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -192,7 +192,7 @@ func (h *GinExecutionHandler) ExecuteWorkflow(c *gin.Context) {
 		WorkflowID: workflow.ID,
 		Status:     models.ExecutionStatusRunning,
 		StartedAt:  time.Now(),
-		UserID:     userID.(int64),
+		UserID:     userID.(string),
 		InputData:  req.Inputs,
 	}
 

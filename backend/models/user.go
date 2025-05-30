@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"github.com/alexfaker/jilang-agent/utils"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -10,11 +11,16 @@ import (
 // User 用户模型
 type User struct {
 	ID           int64      `json:"id" gorm:"primaryKey;autoIncrement"`
+	UserID       string     `json:"userID" gorm:"type:varchar(50);uniqueIndex;not null"`
 	Username     string     `json:"username" gorm:"type:varchar(50);uniqueIndex;not null"`
 	Email        string     `json:"email" gorm:"type:varchar(100);uniqueIndex;not null"`
 	PasswordHash string     `json:"-" gorm:"column:password_hash;type:varchar(255);not null"` // 不暴露密码哈希
 	FullName     string     `json:"fullName" gorm:"column:full_name;type:varchar(100)"`
 	Avatar       string     `json:"avatar" gorm:"type:varchar(255)"`
+	Bio          string     `json:"bio" gorm:"type:text"`                                     // 个人简介
+	Timezone     string     `json:"timezone" gorm:"type:varchar(50);default:'Asia/Shanghai'"` // 时区
+	Language     string     `json:"language" gorm:"type:varchar(10);default:'zh_CN'"`         // 语言
+	Theme        string     `json:"theme" gorm:"type:varchar(20);default:'light'"`            // 主题
 	Role         string     `json:"role" gorm:"type:varchar(20);default:'user'"`
 	Points       int        `json:"points" gorm:"default:0;not null"` // 用户点数余额
 	CreatedAt    time.Time  `json:"createdAt" gorm:"column:created_at;autoCreateTime"`
@@ -46,6 +52,10 @@ type UserUpdateInput struct {
 	Email    string `json:"email" validate:"omitempty,email"`
 	FullName string `json:"fullName"`
 	Avatar   string `json:"avatar"`
+	Bio      string `json:"bio"`
+	Timezone string `json:"timezone"`
+	Language string `json:"language"`
+	Theme    string `json:"theme"`
 }
 
 // PasswordChangeInput 密码更改输入
@@ -91,8 +101,32 @@ func CreateUser(db *gorm.DB, input UserRegisterInput) (*User, error) {
 		return nil, err
 	}
 
+	// 生成全局唯一的用户ID，最多重试3次
+	var userID string
+	maxRetries := 3
+	for i := 0; i < maxRetries; i++ {
+		userID = utils.GenerateUserID()
+
+		// 检查UserID是否已存在
+		var existingUser User
+		err := db.Where("user_id = ?", userID).First(&existingUser).Error
+		if err == gorm.ErrRecordNotFound {
+			// UserID不存在，可以使用
+			break
+		} else if err != nil {
+			// 查询出错
+			return nil, err
+		}
+
+		// 如果是最后一次重试仍然重复，返回错误
+		if i == maxRetries-1 {
+			return nil, gorm.ErrDuplicatedKey
+		}
+	}
+
 	// 创建用户对象
 	user := &User{
+		UserID:       userID,
 		Username:     input.Username,
 		Email:        input.Email,
 		PasswordHash: passwordHash,
@@ -154,6 +188,22 @@ func (u *User) Update(db *gorm.DB, input UserUpdateInput) error {
 	if input.Avatar != "" {
 		updates["avatar"] = input.Avatar
 		u.Avatar = input.Avatar
+	}
+	if input.Bio != "" {
+		updates["bio"] = input.Bio
+		u.Bio = input.Bio
+	}
+	if input.Timezone != "" {
+		updates["timezone"] = input.Timezone
+		u.Timezone = input.Timezone
+	}
+	if input.Language != "" {
+		updates["language"] = input.Language
+		u.Language = input.Language
+	}
+	if input.Theme != "" {
+		updates["theme"] = input.Theme
+		u.Theme = input.Theme
 	}
 
 	// 更新用户信息

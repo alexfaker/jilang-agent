@@ -7,7 +7,7 @@
         <i class="fas fa-plus"></i> 创建工作流
       </button>
       <div class="filters">
-        <select v-model="statusFilter" class="form-select">
+        <select v-model="statusFilter" class="form-select" @change="fetchWorkflows">
           <option value="">所有状态</option>
           <option value="active">激活</option>
           <option value="inactive">未激活</option>
@@ -18,6 +18,7 @@
           v-model="searchQuery" 
           placeholder="搜索工作流..." 
           class="form-control search-input"
+          @input="handleSearch"
         />
       </div>
     </div>
@@ -76,10 +77,10 @@
         
         <div class="workflow-footer">
           <span class="created-time">
-            创建于 {{ formatDate(workflow.created_at) }}
+            创建于 {{ formatDate(workflow.createdAt) }}
           </span>
           <span class="execution-count">
-            <i class="fas fa-history"></i> {{ workflow.execution_count || 0 }}次执行
+            <i class="fas fa-history"></i> {{ workflow.runCount || 0 }}次执行
           </span>
         </div>
       </div>
@@ -118,68 +119,67 @@
         
         <div class="modal-body">
           <div class="form-group">
-            <label for="workflow-name">名称 *</label>
+            <label for="workflowName">工作流名称 *</label>
             <input 
-              id="workflow-name"
-              v-model="workflowForm.name" 
+              id="workflowName"
               type="text" 
+              v-model="workflowForm.name" 
               class="form-control"
-              :class="{'is-invalid': validationErrors.name}"
+              :class="{'error': validationErrors.name}"
+              placeholder="请输入工作流名称"
             />
-            <div v-if="validationErrors.name" class="invalid-feedback">
+            <span v-if="validationErrors.name" class="error-message">
               {{ validationErrors.name }}
-            </div>
+            </span>
           </div>
           
           <div class="form-group">
-            <label for="workflow-description">描述</label>
+            <label for="workflowDescription">工作流描述</label>
             <textarea 
-              id="workflow-description"
+              id="workflowDescription"
               v-model="workflowForm.description" 
               class="form-control"
+              placeholder="请输入工作流描述（可选）"
               rows="3"
             ></textarea>
           </div>
           
           <div class="form-group">
-            <label for="workflow-status">状态</label>
+            <label for="workflowStatus">状态</label>
             <select 
-              id="workflow-status"
+              id="workflowStatus"
               v-model="workflowForm.status" 
               class="form-select"
             >
               <option value="draft">草稿</option>
               <option value="active">激活</option>
-              <option value="inactive">停用</option>
+              <option value="inactive">未激活</option>
             </select>
           </div>
           
           <div class="form-group">
-            <label for="workflow-definition">工作流定义 (JSON) *</label>
+            <label for="workflowDefinition">工作流定义 (JSON) *</label>
             <textarea 
-              id="workflow-definition"
+              id="workflowDefinition"
               v-model="workflowForm.definition" 
               class="form-control code-editor"
+              :class="{'error': validationErrors.definition}"
+              placeholder='请输入工作流定义JSON，例如：{"steps": []}'
               rows="10"
-              :class="{'is-invalid': validationErrors.definition}"
             ></textarea>
-            <div v-if="validationErrors.definition" class="invalid-feedback">
+            <span v-if="validationErrors.definition" class="error-message">
               {{ validationErrors.definition }}
-            </div>
+            </span>
           </div>
         </div>
         
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="closeModal">
+          <button @click="closeModal" class="btn btn-secondary" :disabled="saveInProgress">
             取消
           </button>
-          <button 
-            class="btn btn-primary" 
-            @click="saveWorkflow"
-            :disabled="saveInProgress"
-          >
-            <span v-if="saveInProgress" class="spinner-sm"></span>
-            {{ editingWorkflow ? '保存更改' : '创建工作流' }}
+          <button @click="saveWorkflow" class="btn btn-primary" :disabled="saveInProgress">
+            <i v-if="saveInProgress" class="fas fa-spinner fa-spin"></i>
+            {{ saveInProgress ? '保存中...' : (editingWorkflow ? '更新' : '创建') }}
           </button>
         </div>
       </div>
@@ -187,34 +187,23 @@
     
     <!-- 删除确认模态框 -->
     <div v-if="showDeleteConfirm" class="modal-backdrop">
-      <div class="modal-container confirm-modal">
+      <div class="modal-container small">
         <div class="modal-header">
           <h2>确认删除</h2>
-          <button class="close-btn" @click="showDeleteConfirm = false">
-            <i class="fas fa-times"></i>
-          </button>
         </div>
         
         <div class="modal-body">
-          <p>
-            您确定要删除工作流 <strong>{{ workflowToDelete?.name }}</strong> 吗？
-          </p>
-          <p class="text-danger">
-            此操作无法撤销，所有相关的执行历史也将被删除。
-          </p>
+          <p>确定要删除工作流 <strong>{{ workflowToDelete?.name }}</strong> 吗？</p>
+          <p class="warning-text">此操作不可撤销，工作流的所有执行记录也将被删除。</p>
         </div>
         
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showDeleteConfirm = false">
+          <button @click="showDeleteConfirm = false" class="btn btn-secondary" :disabled="deleteInProgress">
             取消
           </button>
-          <button 
-            class="btn btn-danger" 
-            @click="deleteWorkflow"
-            :disabled="deleteInProgress"
-          >
-            <span v-if="deleteInProgress" class="spinner-sm"></span>
-            确认删除
+          <button @click="deleteWorkflow" class="btn btn-danger" :disabled="deleteInProgress">
+            <i v-if="deleteInProgress" class="fas fa-spinner fa-spin"></i>
+            {{ deleteInProgress ? '删除中...' : '确认删除' }}
           </button>
         </div>
       </div>
@@ -223,6 +212,8 @@
 </template>
 
 <script>
+import { workflowApi } from '../api';
+
 export default {
   name: 'WorkflowView',
   data() {
@@ -241,7 +232,7 @@ export default {
         name: '',
         description: '',
         status: 'draft',
-        definition: '{}'
+        definition: '{\n  "steps": []\n}'
       },
       validationErrors: {},
       saveInProgress: false,
@@ -251,8 +242,10 @@ export default {
       statusLabels: {
         active: '激活',
         inactive: '未激活',
-        draft: '草稿'
-      }
+        draft: '草稿',
+        archived: '已归档'
+      },
+      searchTimeout: null
     };
   },
   computed: {
@@ -270,10 +263,6 @@ export default {
         );
       }
       
-      if (this.statusFilter) {
-        result = result.filter(workflow => workflow.status === this.statusFilter);
-      }
-      
       return result;
     }
   },
@@ -281,86 +270,68 @@ export default {
     this.fetchWorkflows();
   },
   methods: {
-    fetchWorkflows() {
+    async fetchWorkflows() {
       this.loading = true;
       this.error = null;
       
-      // 模拟API调用
-      setTimeout(() => {
-        try {
-          // 这里替换为实际的API调用
-          this.workflows = [
-            {
-              id: 1,
-              name: '文档分析工作流',
-              description: '使用AI代理分析文档内容并提取关键信息',
-              status: 'active',
-              created_at: '2023-10-15T10:20:30Z',
-              execution_count: 24,
-              definition: JSON.stringify({
-                steps: [
-                  { type: 'document_input', id: 'input' },
-                  { type: 'text_analysis', id: 'analysis', input: 'input' },
-                  { type: 'summary_generation', id: 'summary', input: 'analysis' }
-                ]
-              }, null, 2)
-            },
-            {
-              id: 2,
-              name: '客户支持代理',
-              description: '处理客户查询并提供自动响应',
-              status: 'inactive',
-              created_at: '2023-09-28T14:15:20Z',
-              execution_count: 124,
-              definition: JSON.stringify({
-                steps: [
-                  { type: 'query_input', id: 'query' },
-                  { type: 'intent_classification', id: 'intent', input: 'query' },
-                  { type: 'response_generation', id: 'response', input: 'intent' }
-                ]
-              }, null, 2)
-            },
-            {
-              id: 3,
-              name: '代码审查助手',
-              description: '分析代码并提供改进建议',
-              status: 'draft',
-              created_at: '2023-10-10T16:40:15Z',
-              execution_count: 5,
-              definition: JSON.stringify({
-                steps: [
-                  { type: 'code_input', id: 'code' },
-                  { type: 'static_analysis', id: 'analysis', input: 'code' },
-                  { type: 'improvement_suggestions', id: 'suggestions', input: 'analysis' }
-                ]
-              }, null, 2)
-            }
-          ];
-          
-          this.totalItems = this.workflows.length;
-          this.loading = false;
-        } catch (err) {
-          this.error = '加载工作流失败：' + (err.message || '未知错误');
-          this.loading = false;
+      try {
+        const params = {
+          limit: this.itemsPerPage,
+          offset: (this.currentPage - 1) * this.itemsPerPage
+        };
+        
+        if (this.statusFilter) {
+          params.status = this.statusFilter;
         }
-      }, 1000);
+        
+        const response = await workflowApi.getWorkflows(params);
+        
+        if (response.status === 'success') {
+          this.workflows = response.data.workflows || [];
+          this.totalItems = response.data.pagination.total || 0;
+        } else {
+          throw new Error(response.message || '获取工作流列表失败');
+        }
+      } catch (err) {
+        console.error('获取工作流列表失败:', err);
+        this.error = '加载工作流失败：' + (err.message || '未知错误');
+        this.workflows = [];
+        this.totalItems = 0;
+      } finally {
+        this.loading = false;
+      }
     },
+    
+    handleSearch() {
+      // 防抖搜索
+      if (this.searchTimeout) {
+        clearTimeout(this.searchTimeout);
+      }
+      this.searchTimeout = setTimeout(() => {
+        // 搜索是前端过滤，无需重新请求API
+      }, 300);
+    },
+    
     changePage(page) {
       if (page >= 1 && page <= this.totalPages) {
         this.currentPage = page;
         this.fetchWorkflows();
       }
     },
+    
     editWorkflow(workflow) {
       this.editingWorkflow = workflow;
       this.workflowForm = {
         name: workflow.name,
         description: workflow.description || '',
         status: workflow.status,
-        definition: workflow.definition
+        definition: typeof workflow.definition === 'string' 
+          ? workflow.definition 
+          : JSON.stringify(workflow.definition, null, 2)
       };
       this.validationErrors = {};
     },
+    
     closeModal() {
       this.showCreateModal = false;
       this.editingWorkflow = null;
@@ -368,11 +339,12 @@ export default {
         name: '',
         description: '',
         status: 'draft',
-        definition: '{}'
+        definition: '{\n  "steps": []\n}'
       };
       this.validationErrors = {};
     },
-    saveWorkflow() {
+    
+    async saveWorkflow() {
       // 验证表单
       this.validationErrors = {};
       
@@ -392,80 +364,100 @@ export default {
       
       this.saveInProgress = true;
       
-      // 模拟API调用
-      setTimeout(() => {
-        try {
-          // 这里替换为实际的API调用
-          if (this.editingWorkflow) {
-            // 更新现有工作流
-            const index = this.workflows.findIndex(w => w.id === this.editingWorkflow.id);
-            if (index !== -1) {
-              this.workflows[index] = {
-                ...this.editingWorkflow,
-                name: this.workflowForm.name,
-                description: this.workflowForm.description,
-                status: this.workflowForm.status,
-                definition: this.workflowForm.definition
-              };
-            }
-          } else {
-            // 创建新工作流
-            const newWorkflow = {
-              id: Date.now(), // 模拟ID生成
-              name: this.workflowForm.name,
-              description: this.workflowForm.description,
-              status: this.workflowForm.status,
-              created_at: new Date().toISOString(),
-              execution_count: 0,
-              definition: this.workflowForm.definition
-            };
-            
-            this.workflows.unshift(newWorkflow);
-            this.totalItems++;
-          }
+      try {
+        const workflowData = {
+          name: this.workflowForm.name.trim(),
+          description: this.workflowForm.description.trim(),
+          status: this.workflowForm.status,
+          definition: JSON.parse(this.workflowForm.definition)
+        };
+        
+        let response;
+        if (this.editingWorkflow) {
+          // 更新现有工作流
+          response = await workflowApi.updateWorkflow(this.editingWorkflow.id, workflowData);
+        } else {
+          // 创建新工作流
+          response = await workflowApi.createWorkflow(workflowData);
+        }
+        
+        if (response.status === 'success') {
+          // 显示成功消息
+          this.$toast?.success?.(this.editingWorkflow ? '工作流更新成功' : '工作流创建成功') 
+            || alert(this.editingWorkflow ? '工作流更新成功' : '工作流创建成功');
           
           this.closeModal();
-          this.saveInProgress = false;
-        } catch (err) {
-          alert('保存工作流失败：' + (err.message || '未知错误'));
-          this.saveInProgress = false;
+          await this.fetchWorkflows(); // 重新加载列表
+        } else {
+          throw new Error(response.message || '操作失败');
         }
-      }, 1000);
+      } catch (err) {
+        console.error('保存工作流失败:', err);
+        // 显示错误消息
+        this.$toast?.error?.('保存工作流失败：' + (err.message || '未知错误'))
+          || alert('保存工作流失败：' + (err.message || '未知错误'));
+      } finally {
+        this.saveInProgress = false;
+      }
     },
-    executeWorkflow(workflow) {
-      // 跳转到执行页面或启动执行
-      alert(`开始执行工作流：${workflow.name}`);
-      // this.$router.push(`/workflow/execute/${workflow.id}`);
+    
+    async executeWorkflow(workflow) {
+      try {
+        const response = await workflowApi.executeWorkflow(workflow.id, {});
+        
+        if (response.status === 'success') {
+          // 显示成功消息
+          this.$toast?.success?.(`工作流 "${workflow.name}" 执行已启动`)
+            || alert(`工作流 "${workflow.name}" 执行已启动`);
+          
+          // 跳转到执行页面或更新执行次数
+          await this.fetchWorkflows();
+        } else {
+          throw new Error(response.message || '执行失败');
+        }
+      } catch (err) {
+        console.error('执行工作流失败:', err);
+        // 显示错误消息
+        this.$toast?.error?.('执行工作流失败：' + (err.message || '未知错误'))
+          || alert('执行工作流失败：' + (err.message || '未知错误'));
+      }
     },
+    
     confirmDelete(workflow) {
       this.workflowToDelete = workflow;
       this.showDeleteConfirm = true;
     },
-    deleteWorkflow() {
+    
+    async deleteWorkflow() {
       if (!this.workflowToDelete) return;
       
       this.deleteInProgress = true;
       
-      // 模拟API调用
-      setTimeout(() => {
-        try {
-          // 这里替换为实际的API调用
-          const index = this.workflows.findIndex(w => w.id === this.workflowToDelete.id);
-          if (index !== -1) {
-            this.workflows.splice(index, 1);
-            this.totalItems--;
-          }
+      try {
+        const response = await workflowApi.deleteWorkflow(this.workflowToDelete.id);
+        
+        if (response.status === 'success') {
+          // 显示成功消息
+          this.$toast?.success?.('工作流删除成功') || alert('工作流删除成功');
           
           this.showDeleteConfirm = false;
           this.workflowToDelete = null;
-          this.deleteInProgress = false;
-        } catch (err) {
-          alert('删除工作流失败：' + (err.message || '未知错误'));
-          this.deleteInProgress = false;
+          await this.fetchWorkflows(); // 重新加载列表
+        } else {
+          throw new Error(response.message || '删除失败');
         }
-      }, 1000);
+      } catch (err) {
+        console.error('删除工作流失败:', err);
+        // 显示错误消息
+        this.$toast?.error?.('删除工作流失败：' + (err.message || '未知错误'))
+          || alert('删除工作流失败：' + (err.message || '未知错误'));
+      } finally {
+        this.deleteInProgress = false;
+      }
     },
+    
     formatDate(dateString) {
+      if (!dateString) return '';
       const date = new Date(dateString);
       return date.toLocaleDateString('zh-CN', {
         year: 'numeric',

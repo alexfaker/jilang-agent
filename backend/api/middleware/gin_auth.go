@@ -95,7 +95,7 @@ func GinAuthMiddleware(jwtSecret string) gin.HandlerFunc {
 		}
 
 		// 获取用户ID和用户名
-		userID, ok := claims["user_id"].(float64)
+		userID, ok := claims["user_id"].(string)
 		if !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"status":  "error",
@@ -116,7 +116,7 @@ func GinAuthMiddleware(jwtSecret string) gin.HandlerFunc {
 		}
 
 		// 将用户信息设置到上下文
-		c.Set("userID", int64(userID))
+		c.Set("userID", userID)
 		c.Set("username", username)
 
 		c.Next()

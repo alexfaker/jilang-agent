@@ -1,479 +1,437 @@
 <template>
-  <div class="container mx-auto px-4 py-6">
-    <!-- 页面标题 -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900 mb-2">积分充值</h1>
-      <p class="text-gray-600">选择合适的充值套餐，为您的账户充值积分</p>
-    </div>
-
-    <!-- 当前余额显示 -->
-    <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white mb-8">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-blue-100 text-sm">当前积分余额</p>
-          <p class="text-3xl font-bold">{{ formatPoints(currentBalance) }}</p>
-        </div>
-        <div class="text-blue-200">
-          <i class="fas fa-coins text-3xl"></i>
-        </div>
-      </div>
-    </div>
-
-    <!-- 充值套餐 -->
-    <div class="bg-white rounded-lg shadow-sm border p-6 mb-8">
-      <h3 class="text-lg font-medium text-gray-900 mb-6">选择充值套餐</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div 
-          v-for="pkg in rechargePackages" 
-          :key="pkg.id"
-          @click="selectPackage(pkg)"
-          :class="[
-            'relative cursor-pointer border-2 rounded-lg p-6 transition-all',
-            selectedPackage?.id === pkg.id 
-              ? 'border-blue-500 bg-blue-50' 
-              : 'border-gray-200 hover:border-blue-300'
-          ]"
-        >
-          <!-- 推荐标签 -->
-          <div v-if="pkg.recommended" class="absolute -top-3 left-1/2 transform -translate-x-1/2">
-            <span class="bg-orange-500 text-white text-xs px-3 py-1 rounded-full">推荐</span>
-          </div>
-
-          <!-- 套餐内容 -->
-          <div class="text-center">
-            <div class="text-2xl font-bold text-gray-900 mb-2">
-              {{ formatPoints(pkg.points) }}
-            </div>
-            <div class="text-sm text-gray-500 mb-4">积分</div>
-            <div class="text-xl font-semibold text-blue-600 mb-2">
-              ¥{{ pkg.price }}
-            </div>
-            <div v-if="pkg.bonus > 0" class="text-sm text-green-600 mb-4">
-              额外赠送 {{ formatPoints(pkg.bonus) }} 积分
-            </div>
-            <div class="text-xs text-gray-400">
-              单价: ¥{{ (pkg.price / pkg.points).toFixed(4) }}/积分
-            </div>
-          </div>
-
-          <!-- 选中标识 -->
-          <div v-if="selectedPackage?.id === pkg.id" class="absolute top-2 right-2">
-            <i class="fas fa-check-circle text-blue-500 text-xl"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 支付方式选择 -->
-    <div v-if="selectedPackage" class="bg-white rounded-lg shadow-sm border p-6 mb-8">
-      <h3 class="text-lg font-medium text-gray-900 mb-6">选择支付方式</h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div 
-          v-for="method in paymentMethods" 
-          :key="method.id"
-          @click="selectedPaymentMethod = method.id"
-          :class="[
-            'relative cursor-pointer border-2 rounded-lg p-4 transition-all',
-            selectedPaymentMethod === method.id 
-              ? 'border-blue-500 bg-blue-50' 
-              : 'border-gray-200 hover:border-blue-300'
-          ]"
-        >
-          <div class="flex items-center">
-            <i :class="[method.icon, 'text-2xl mr-3', method.color]"></i>
-            <div>
-              <div class="font-medium text-gray-900">{{ method.name }}</div>
-              <div class="text-sm text-gray-500">{{ method.description }}</div>
-            </div>
-          </div>
-          
-          <!-- 选中标识 -->
-          <div v-if="selectedPaymentMethod === method.id" class="absolute top-2 right-2">
-            <i class="fas fa-check-circle text-blue-500"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 订单确认 -->
-    <div v-if="selectedPackage && selectedPaymentMethod" class="bg-white rounded-lg shadow-sm border p-6 mb-8">
-      <h3 class="text-lg font-medium text-gray-900 mb-6">订单确认</h3>
-      <div class="space-y-4">
-        <div class="flex justify-between">
-          <span class="text-gray-600">充值套餐:</span>
-          <span class="font-medium">{{ formatPoints(selectedPackage.points) }} 积分</span>
-        </div>
-        <div v-if="selectedPackage.bonus > 0" class="flex justify-between">
-          <span class="text-gray-600">赠送积分:</span>
-          <span class="font-medium text-green-600">{{ formatPoints(selectedPackage.bonus) }} 积分</span>
-        </div>
-        <div class="flex justify-between">
-          <span class="text-gray-600">支付方式:</span>
-          <span class="font-medium">{{ getPaymentMethodName(selectedPaymentMethod) }}</span>
-        </div>
-        <hr>
-        <div class="flex justify-between text-lg font-semibold">
-          <span>支付金额:</span>
-          <span class="text-blue-600">¥{{ selectedPackage.price }}</span>
-        </div>
-      </div>
-
-      <!-- 支付按钮 -->
-      <div class="mt-6">
-        <button 
-          @click="handlePay"
-          :disabled="paymentLoading"
-          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"
-        >
-          <span v-if="paymentLoading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
-          {{ paymentLoading ? '正在处理...' : '立即支付' }}
-        </button>
-      </div>
-    </div>
-
-    <!-- 充值历史 -->
-    <div class="bg-white rounded-lg shadow-sm border">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <div class="flex justify-between items-center">
-          <h3 class="text-lg font-medium text-gray-900">充值历史</h3>
-          <button 
-            @click="loadRechargeHistory" 
-            class="text-blue-600 hover:text-blue-800 text-sm"
-            :disabled="historyLoading"
+  <div class="min-h-screen bg-gray-50">
+    <!-- 页面头部 -->
+    <div class="bg-white shadow-sm border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex items-center space-x-3">
+          <router-link 
+            to="/profile" 
+            class="text-gray-500 hover:text-gray-700 transition-colors"
           >
-            <i class="fas fa-sync-alt" :class="{ 'animate-spin': historyLoading }"></i> 刷新
-          </button>
+            <i class="fas fa-arrow-left text-lg"></i>
+          </router-link>
+          <h1 class="text-2xl font-bold text-gray-900">资源点充值</h1>
         </div>
       </div>
+    </div>
 
-      <div class="p-6">
-        <!-- 加载状态 -->
-        <div v-if="historyLoading" class="text-center py-8">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-          <p class="text-gray-500 mt-2">加载中...</p>
-        </div>
-
-        <!-- 历史记录列表 -->
-        <div v-else-if="rechargeHistory.length > 0" class="space-y-4">
-          <div 
-            v-for="record in rechargeHistory" 
-            :key="record.id"
-            class="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
-          >
+    <div class="max-w-4xl mx-auto px-6 py-8">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- 充值选择区域 -->
+        <div class="lg:col-span-2">
+          <!-- 当前余额 -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">当前余额</h2>
             <div class="flex items-center">
-              <div :class="[
-                'w-10 h-10 rounded-full flex items-center justify-center mr-3',
-                record.status === 'completed' ? 'bg-green-100 text-green-600' :
-                record.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
-                'bg-red-100 text-red-600'
-              ]">
-                <i :class="[
-                  'fas',
-                  record.status === 'completed' ? 'fa-check' :
-                  record.status === 'pending' ? 'fa-clock' :
-                  'fa-times'
-                ]"></i>
-              </div>
+              <i class="fas fa-coins text-yellow-500 text-3xl mr-4"></i>
               <div>
-                <p class="font-medium text-gray-900">
-                  充值 {{ formatPoints(record.points) }} 积分
-                </p>
-                <p class="text-sm text-gray-500">
-                  {{ formatDate(record.createdAt) }} · {{ getStatusText(record.status) }}
-                </p>
+                <span class="text-3xl font-bold text-gray-900">{{ currentBalance.toLocaleString() }}</span>
+                <span class="text-sm text-gray-500 ml-2">点数</span>
               </div>
             </div>
-            <div class="text-right">
-              <p class="font-semibold text-gray-900">¥{{ record.amount }}</p>
-              <p class="text-sm text-gray-500">{{ record.paymentMethod }}</p>
+          </div>
+
+          <!-- 充值套餐 -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">选择充值套餐</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div 
+                v-for="package_ in rechargePackages" 
+                :key="package_.id"
+                @click="selectPackage(package_)"
+                :class="[
+                  'relative p-4 border-2 rounded-lg cursor-pointer transition-all',
+                  selectedPackage?.id === package_.id 
+                    ? 'border-indigo-500 bg-indigo-50' 
+                    : 'border-gray-200 hover:border-gray-300'
+                ]"
+              >
+                <!-- 推荐标签 -->
+                <div v-if="package_.recommended" class="absolute -top-2 -right-2">
+                  <span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">推荐</span>
+                </div>
+                
+                <div class="text-center">
+                  <div class="text-lg font-bold text-gray-900">¥{{ package_.price }}</div>
+                  <div class="text-sm text-gray-600 mt-1">{{ package_.points.toLocaleString() }} 点数</div>
+                  <div v-if="package_.bonus > 0" class="text-xs text-green-600 mt-1">
+                    赠送 {{ package_.bonus.toLocaleString() }} 点数
+                  </div>
+                </div>
+
+                <!-- 选中状态 -->
+                <div v-if="selectedPackage?.id === package_.id" class="absolute top-2 right-2">
+                  <i class="fas fa-check-circle text-indigo-500"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- 自定义金额 -->
+            <div class="mt-6 p-4 border border-gray-200 rounded-lg">
+              <div class="flex items-center mb-3">
+                <input 
+                  type="radio" 
+                  id="custom" 
+                  name="package" 
+                  v-model="isCustomAmount" 
+                  :value="true"
+                  class="text-indigo-600 focus:ring-indigo-500"
+                >
+                <label for="custom" class="ml-2 text-sm font-medium text-gray-700">
+                  自定义金额
+                </label>
+              </div>
+              <div v-if="isCustomAmount" class="flex items-center space-x-4">
+                <div class="flex-1">
+                  <div class="relative">
+                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">¥</span>
+                    <input 
+                      type="number" 
+                      v-model="customAmount"
+                      placeholder="请输入充值金额"
+                      min="1"
+                      max="10000"
+                      class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                  </div>
+                </div>
+                <div class="text-sm text-gray-600">
+                  = {{ Math.floor(customAmount * 100).toLocaleString() }} 点数
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 支付方式 -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">选择支付方式</h2>
+            <div class="space-y-3">
+              <div 
+                v-for="method in paymentMethods" 
+                :key="method.id"
+                @click="selectedPaymentMethod = method"
+                :class="[
+                  'flex items-center p-4 border rounded-lg cursor-pointer transition-all',
+                  selectedPaymentMethod?.id === method.id 
+                    ? 'border-indigo-500 bg-indigo-50' 
+                    : 'border-gray-200 hover:border-gray-300'
+                ]"
+              >
+                <div class="flex-1 flex items-center">
+                  <i :class="method.icon" class="text-2xl mr-3"></i>
+                  <div>
+                    <div class="font-medium text-gray-900">{{ method.name }}</div>
+                    <div class="text-sm text-gray-500">{{ method.description }}</div>
+                  </div>
+                </div>
+                <div v-if="selectedPaymentMethod?.id === method.id">
+                  <i class="fas fa-check-circle text-indigo-500"></i>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- 空状态 -->
-        <div v-else class="text-center py-8">
-          <i class="fas fa-receipt text-4xl text-gray-300 mb-4"></i>
-          <p class="text-gray-500">暂无充值记录</p>
+        <!-- 订单摘要 -->
+        <div class="lg:col-span-1">
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">订单摘要</h2>
+            
+            <div class="space-y-3">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">充值金额</span>
+                <span class="font-medium">¥{{ finalAmount }}</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">获得点数</span>
+                <span class="font-medium">{{ finalPoints.toLocaleString() }} 点数</span>
+              </div>
+              <div v-if="bonusPoints > 0" class="flex justify-between text-sm">
+                <span class="text-green-600">赠送点数</span>
+                <span class="font-medium text-green-600">+{{ bonusPoints.toLocaleString() }} 点数</span>
+              </div>
+              <div class="border-t border-gray-200 pt-3">
+                <div class="flex justify-between">
+                  <span class="text-gray-900 font-medium">总计点数</span>
+                  <span class="text-lg font-bold text-indigo-600">{{ totalPoints.toLocaleString() }} 点数</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-6">
+              <button 
+                @click="handleRecharge"
+                :disabled="!canProceed || isProcessing"
+                :class="[
+                  'w-full py-3 px-4 rounded-lg font-medium transition-colors',
+                  canProceed && !isProcessing
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                ]"
+              >
+                <i v-if="isProcessing" class="fas fa-spinner fa-spin mr-2"></i>
+                {{ isProcessing ? '处理中...' : `立即支付 ¥${finalAmount}` }}
+              </button>
+            </div>
+
+            <!-- 安全提示 -->
+            <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+              <div class="flex items-start">
+                <i class="fas fa-shield-alt text-blue-500 mt-1 mr-2"></i>
+                <div class="text-sm text-blue-700">
+                  <div class="font-medium mb-1">安全保障</div>
+                  <ul class="text-xs space-y-1">
+                    <li>• 支付全程SSL加密</li>
+                    <li>• 7×24小时服务监控</li>
+                    <li>• 充值即时到账</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 通知提示 -->
-    <div v-if="notification.show" class="fixed top-4 right-4 max-w-md z-50">
-      <div :class="[
-        'p-4 rounded-lg shadow-lg',
-        notification.type === 'success' ? 'bg-green-100 text-green-800 border-l-4 border-green-500' : 
-        'bg-red-100 text-red-800 border-l-4 border-red-500'
-      ]">
-        <div class="flex items-start">
-          <i :class="[
-            'fas mt-0.5 mr-3',
-            notification.type === 'success' ? 'fa-check-circle text-green-500' : 'fa-exclamation-circle text-red-500'
-          ]"></i>
-          <div class="flex-1">
-            <p class="font-medium">{{ notification.title }}</p>
-            <p class="text-sm">{{ notification.message }}</p>
+    <!-- 支付确认对话框 -->
+    <div v-if="showPaymentDialog" class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showPaymentDialog = false"></div>
+        
+        <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+          <div class="sm:flex sm:items-start">
+            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+              <i class="fas fa-credit-card text-blue-600"></i>
+            </div>
+            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+              <h3 class="text-lg leading-6 font-medium text-gray-900">
+                确认支付
+              </h3>
+              <div class="mt-2">
+                <p class="text-sm text-gray-500">
+                  您即将支付 <strong>¥{{ finalAmount }}</strong>，获得 <strong>{{ totalPoints.toLocaleString() }} 点数</strong>
+                </p>
+                <p class="text-sm text-gray-500 mt-1">
+                  支付方式：{{ selectedPaymentMethod?.name }}
+                </p>
+              </div>
+            </div>
           </div>
-          <button @click="notification.show = false" class="ml-4 text-gray-500 hover:text-gray-700">
-            <i class="fas fa-times"></i>
-          </button>
+          <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+            <button 
+              type="button" 
+              @click="confirmPayment"
+              :disabled="isProcessing"
+              class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <i v-if="isProcessing" class="fas fa-spinner fa-spin mr-2"></i>
+              {{ isProcessing ? '处理中...' : '确认支付' }}
+            </button>
+            <button 
+              type="button" 
+              @click="showPaymentDialog = false"
+              :disabled="isProcessing"
+              class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              取消
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-import { ref, reactive, onMounted } from 'vue'
-import { rechargeApi, pointsApi } from '../../api/index'
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
+import { rechargeApi, pointsApi } from '@/api'
 
-export default {
-  name: 'RechargeView',
-  setup() {
-    // 状态管理
-    const paymentLoading = ref(false)
-    const historyLoading = ref(false)
-    const currentBalance = ref(0)
+const router = useRouter()
+const toast = useToast()
 
-    // 选择状态
-    const selectedPackage = ref(null)
-    const selectedPaymentMethod = ref('')
+// 状态管理
+const currentBalance = ref(0)
+const selectedPackage = ref(null)
+const isCustomAmount = ref(false)
+const customAmount = ref('')
+const selectedPaymentMethod = ref(null)
+const showPaymentDialog = ref(false)
+const isProcessing = ref(false)
 
-    // 充值套餐
-    const rechargePackages = ref([
-      {
-        id: 1,
-        points: 1000,
-        price: 10,
-        bonus: 0,
-        recommended: false
-      },
-      {
-        id: 2,
-        points: 5000,
-        price: 45,
-        bonus: 500,
-        recommended: true
-      },
-      {
-        id: 3,
-        points: 10000,
-        price: 80,
-        bonus: 1500,
-        recommended: false
-      },
-      {
-        id: 4,
-        points: 20000,
-        price: 150,
-        bonus: 4000,
-        recommended: false
-      },
-      {
-        id: 5,
-        points: 50000,
-        price: 350,
-        bonus: 12500,
-        recommended: false
-      },
-      {
-        id: 6,
-        points: 100000,
-        price: 650,
-        bonus: 30000,
-        recommended: false
-      }
-    ])
+// 充值套餐
+const rechargePackages = ref([
+  {
+    id: 1,
+    price: 10,
+    points: 1000,
+    bonus: 0,
+    recommended: false
+  },
+  {
+    id: 2,
+    price: 50,
+    points: 5000,
+    bonus: 500,
+    recommended: true
+  },
+  {
+    id: 3,
+    price: 100,
+    points: 10000,
+    bonus: 1500,
+    recommended: false
+  },
+  {
+    id: 4,
+    price: 200,
+    points: 20000,
+    bonus: 4000,
+    recommended: false
+  },
+  {
+    id: 5,
+    price: 500,
+    points: 50000,
+    bonus: 12500,
+    recommended: false
+  },
+  {
+    id: 6,
+    price: 1000,
+    points: 100000,
+    bonus: 30000,
+    recommended: false
+  }
+])
 
-    // 支付方式
-    const paymentMethods = ref([
-      {
-        id: 'alipay',
-        name: '支付宝',
-        description: '安全便捷',
-        icon: 'fab fa-alipay',
-        color: 'text-blue-500'
-      },
-      {
-        id: 'wechat',
-        name: '微信支付',
-        description: '快速支付',
-        icon: 'fab fa-weixin',
-        color: 'text-green-500'
-      },
-      {
-        id: 'bank',
-        name: '银行卡',
-        description: '网银支付',
-        icon: 'fas fa-credit-card',
-        color: 'text-gray-500'
-      }
-    ])
+// 支付方式
+const paymentMethods = ref([
+  {
+    id: 'alipay',
+    name: '支付宝',
+    description: '支持支付宝扫码支付',
+    icon: 'fab fa-alipay text-blue-500'
+  },
+  {
+    id: 'wechat',
+    name: '微信支付',
+    description: '支持微信扫码支付',
+    icon: 'fab fa-weixin text-green-500'
+  },
+  {
+    id: 'credit',
+    name: '银行卡',
+    description: '支持信用卡、储蓄卡',
+    icon: 'fas fa-credit-card text-gray-600'
+  }
+])
 
-    // 充值历史
-    const rechargeHistory = ref([])
+// 计算属性
+const finalAmount = computed(() => {
+  if (isCustomAmount.value && customAmount.value) {
+    return parseFloat(customAmount.value) || 0
+  }
+  return selectedPackage.value?.price || 0
+})
 
-    // 通知
-    const notification = reactive({
-      show: false,
-      type: 'info',
-      title: '',
-      message: ''
-    })
+const finalPoints = computed(() => {
+  if (isCustomAmount.value && customAmount.value) {
+    return Math.floor((parseFloat(customAmount.value) || 0) * 100)
+  }
+  return selectedPackage.value?.points || 0
+})
 
-    // 格式化积分
-    const formatPoints = (points) => {
-      return points?.toLocaleString() || '0'
+const bonusPoints = computed(() => {
+  if (isCustomAmount.value) {
+    return 0
+  }
+  return selectedPackage.value?.bonus || 0
+})
+
+const totalPoints = computed(() => {
+  return finalPoints.value + bonusPoints.value
+})
+
+const canProceed = computed(() => {
+  const hasValidAmount = isCustomAmount.value 
+    ? (customAmount.value && parseFloat(customAmount.value) >= 1) 
+    : selectedPackage.value
+  
+  return hasValidAmount && selectedPaymentMethod.value
+})
+
+// 方法
+const selectPackage = (package_) => {
+  selectedPackage.value = package_
+  isCustomAmount.value = false
+  customAmount.value = ''
+}
+
+const handleRecharge = () => {
+  if (!canProceed.value) return
+  showPaymentDialog.value = true
+}
+
+const confirmPayment = async () => {
+  if (isProcessing.value) return
+  
+  isProcessing.value = true
+  
+  try {
+    const rechargeData = {
+      amount: Math.round(finalAmount.value * 100), // 转换为分
+      points: totalPoints.value,
+      paymentMethod: selectedPaymentMethod.value.id,
+      packageId: selectedPackage.value?.id || null
     }
-
-    // 格式化日期
-    const formatDate = (date) => {
-      return new Date(date).toLocaleString('zh-CN')
-    }
-
-    // 获取支付方式名称
-    const getPaymentMethodName = (id) => {
-      const method = paymentMethods.value.find(m => m.id === id)
-      return method?.name || ''
-    }
-
-    // 获取状态文本
-    const getStatusText = (status) => {
-      const statusMap = {
-        'pending': '处理中',
-        'completed': '已完成',
-        'failed': '失败',
-        'cancelled': '已取消'
-      }
-      return statusMap[status] || status
-    }
-
-    // 显示通知
-    const showNotification = (type, title, message) => {
-      notification.show = true
-      notification.type = type
-      notification.title = title
-      notification.message = message
+    
+    const response = await rechargeApi.createRecharge(rechargeData)
+    
+    if (response.status === 'success') {
+      toast.success('充值订单创建成功，正在跳转到支付页面...')
       
+      // 模拟支付流程（实际应该跳转到支付页面）
       setTimeout(() => {
-        notification.show = false
-      }, 5000)
+        toast.success('充值成功！点数已到账')
+        router.push('/profile')
+      }, 2000)
+    } else {
+      throw new Error(response.message || '充值失败')
     }
-
-    // 选择套餐
-    const selectPackage = (pkg) => {
-      selectedPackage.value = pkg
-    }
-
-    // 加载当前余额
-    const loadCurrentBalance = async () => {
-      try {
-        const response = await pointsApi.getPoints()
-        currentBalance.value = response.data?.balance || 0
-      } catch (error) {
-        console.error('加载余额失败:', error)
-      }
-    }
-
-    // 处理支付
-    const handlePay = async () => {
-      if (!selectedPackage.value || !selectedPaymentMethod.value) {
-        showNotification('error', '支付失败', '请选择充值套餐和支付方式')
-        return
-      }
-
-      paymentLoading.value = true
-      
-      try {
-        const paymentData = {
-          packageId: selectedPackage.value.id,
-          paymentMethod: selectedPaymentMethod.value,
-          amount: selectedPackage.value.price,
-          points: selectedPackage.value.points + selectedPackage.value.bonus
-        }
-
-        const response = await rechargeApi.createRecharge(paymentData)
-        
-        showNotification('success', '支付成功', '积分已充值到您的账户')
-        
-        // 重新加载余额和历史
-        loadCurrentBalance()
-        loadRechargeHistory()
-        
-        // 清除选择
-        selectedPackage.value = null
-        selectedPaymentMethod.value = ''
-        
-      } catch (error) {
-        console.error('支付失败:', error)
-        
-        let errorMessage = '支付失败，请稍后重试'
-        if (error.response && error.response.data && error.response.data.message) {
-          errorMessage = error.response.data.message
-        }
-        
-        showNotification('error', '支付失败', errorMessage)
-      } finally {
-        paymentLoading.value = false
-      }
-    }
-
-    // 加载充值历史
-    const loadRechargeHistory = async () => {
-      historyLoading.value = true
-      try {
-        const response = await rechargeApi.getRechargeHistory({
-          page: 1,
-          limit: 20
-        })
-        rechargeHistory.value = response.data?.records || []
-      } catch (error) {
-        console.error('加载充值历史失败:', error)
-        showNotification('error', '加载失败', '无法加载充值历史')
-      } finally {
-        historyLoading.value = false
-      }
-    }
-
-    // 生命周期
-    onMounted(() => {
-      loadCurrentBalance()
-      loadRechargeHistory()
-    })
-
-    return {
-      paymentLoading,
-      historyLoading,
-      currentBalance,
-      selectedPackage,
-      selectedPaymentMethod,
-      rechargePackages,
-      paymentMethods,
-      rechargeHistory,
-      notification,
-      formatPoints,
-      formatDate,
-      getPaymentMethodName,
-      getStatusText,
-      selectPackage,
-      handlePay,
-      loadRechargeHistory
-    }
+  } catch (error) {
+    console.error('充值失败:', error)
+    toast.error(error.message || '充值失败，请稍后重试')
+  } finally {
+    isProcessing.value = false
+    showPaymentDialog.value = false
   }
 }
+
+const fetchCurrentBalance = async () => {
+  try {
+    const response = await pointsApi.getPointsBalance()
+    if (response.status === 'success') {
+      currentBalance.value = response.data.points
+    }
+  } catch (error) {
+    console.error('获取余额失败:', error)
+  }
+}
+
+// 生命周期
+onMounted(() => {
+  fetchCurrentBalance()
+  // 默认选择第一个支付方式
+  selectedPaymentMethod.value = paymentMethods.value[0]
+})
 </script>
 
 <style scoped>
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* 自定义样式 */
+.sticky {
+  position: -webkit-sticky;
+  position: sticky;
 }
 </style> 

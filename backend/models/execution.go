@@ -25,7 +25,7 @@ const (
 type WorkflowExecution struct {
 	ID           int64           `json:"id" gorm:"primaryKey;autoIncrement"`
 	WorkflowID   int64           `json:"workflowId" gorm:"column:workflow_id;index;not null"`
-	UserID       int64           `json:"userId" gorm:"column:user_id;index;not null"`
+	UserID       string          `json:"userID" gorm:"column:user_id;index;not null"`
 	AgentID      *int64          `json:"agentId" gorm:"column:agent_id;index"`
 	Status       ExecutionStatus `json:"status" gorm:"type:varchar(20);not null;default:'pending'"`
 	StartedAt    time.Time       `json:"startedAt" gorm:"column:started_at;not null"`
@@ -35,6 +35,11 @@ type WorkflowExecution struct {
 	ErrorMessage string          `json:"errorMessage" gorm:"column:error_message;type:text"`
 	InputData    json.RawMessage `json:"inputData" gorm:"column:input_data;type:json"`   // 输入数据
 	OutputData   json.RawMessage `json:"outputData" gorm:"column:output_data;type:json"` // 输出数据
+	CreatedAt    time.Time       `json:"createdAt" gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt    time.Time       `json:"updatedAt" gorm:"column:updated_at;autoUpdateTime"`
+
+	// GORM 关联关系
+	Workflow *Workflow `json:"workflow,omitempty" gorm:"foreignKey:WorkflowID;references:ID"`
 
 	// 关联信息（非数据库字段，用于API返回）
 	WorkflowName string `json:"workflowName,omitempty" gorm:"-"`
@@ -86,9 +91,9 @@ type WorkflowExecutionStats struct {
 }
 
 // CreateExecution 创建新执行记录
-func CreateExecution(db *sql.DB, userID int64, input ExecutionCreateInput) (*WorkflowExecution, error) {
+func CreateExecution(db *sql.DB, userID string, input ExecutionCreateInput) (*WorkflowExecution, error) {
 	// 检查工作流是否存在并且属于当前用户
-	var workflowUserID int64
+	var workflowUserID string
 	var workflowStatus string
 	err := db.QueryRow("SELECT user_id, status FROM workflows WHERE id = ?", input.WorkflowID).Scan(&workflowUserID, &workflowStatus)
 	if err != nil {
@@ -145,7 +150,6 @@ func CreateExecution(db *sql.DB, userID int64, input ExecutionCreateInput) (*Wor
 		execution.StartedAt,
 		[]byte(execution.InputData),
 	).Scan(&execution.ID)
-
 	if err != nil {
 		return nil, fmt.Errorf("创建执行记录失败: %w", err)
 	}
@@ -167,7 +171,7 @@ func CreateExecution(db *sql.DB, userID int64, input ExecutionCreateInput) (*Wor
 }
 
 // CreateExecutionGorm 使用GORM创建新执行记录
-func CreateExecutionGorm(db *gorm.DB, userID int64, input ExecutionCreateInput) (*WorkflowExecution, error) {
+func CreateExecutionGorm(db *gorm.DB, userID string, input ExecutionCreateInput) (*WorkflowExecution, error) {
 	// 检查工作流是否存在并且属于当前用户
 	var workflow Workflow
 	if err := db.Select("user_id, status").Where("id = ?", input.WorkflowID).First(&workflow).Error; err != nil {
@@ -177,7 +181,9 @@ func CreateExecutionGorm(db *gorm.DB, userID int64, input ExecutionCreateInput) 
 		return nil, fmt.Errorf("获取工作流信息失败: %w", err)
 	}
 
-	if workflow.UserID != userID {
+	// 将userID转换为字符串进行比较
+	userIDStr := fmt.Sprintf("%d", userID)
+	if workflow.UserID != userIDStr {
 		return nil, errors.New("无权访问此工作流")
 	}
 
@@ -235,7 +241,6 @@ func GetExecutionGorm(db *gorm.DB, id int64) (*WorkflowExecution, error) {
 		Joins("LEFT JOIN agents a ON e.agent_id = a.id").
 		Where("e.id = ?", id).
 		Scan(&execution).Error
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("执行记录不存在")
@@ -335,7 +340,9 @@ func CancelExecutionGorm(db *gorm.DB, id int64, userID int64) error {
 		return fmt.Errorf("获取工作流信息失败: %w", err)
 	}
 
-	if workflow.UserID != userID {
+	// 将userID转换为字符串进行比较
+	userIDStr := fmt.Sprintf("%d", userID)
+	if workflow.UserID != userIDStr {
 		return errors.New("无权访问此执行记录")
 	}
 
@@ -413,7 +420,6 @@ func GetExecutionStatsByWorkflowGorm(db *gorm.DB, userID int64) ([]*WorkflowExec
 		GROUP BY w.id, w.name
 		ORDER BY total DESC
 	`, userID).Rows()
-
 	if err != nil {
 		return nil, fmt.Errorf("查询工作流执行统计失败: %w", err)
 	}

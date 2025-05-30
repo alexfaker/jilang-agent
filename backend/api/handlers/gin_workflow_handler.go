@@ -70,7 +70,7 @@ func (h *GinWorkflowHandler) GetWorkflows(c *gin.Context) {
 	statusFilter := c.Query("status")
 
 	// 构建查询 - 只查询当前用户的工作流
-	query := h.DB.Model(&models.Workflow{}).Where("user_id = ?", userID.(int64))
+	query := h.DB.Model(&models.Workflow{}).Where("user_id = ?", userID.(string))
 
 	// 应用状态筛选
 	if statusFilter != "" {
@@ -133,7 +133,7 @@ func (h *GinWorkflowHandler) GetWorkflow(c *gin.Context) {
 
 	// 查询工作流 - 验证所有权
 	var workflow models.Workflow
-	result := h.DB.Where("id = ? AND user_id = ?", id, userID.(int64)).First(&workflow)
+	result := h.DB.Where("id = ? AND user_id = ?", id, userID.(string)).First(&workflow)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -201,7 +201,7 @@ func (h *GinWorkflowHandler) CreateWorkflow(c *gin.Context) {
 		Description: req.Description,
 		Definition:  req.Definition,
 		Status:      workflowStatus,
-		UserID:      userID.(int64),
+		UserID:      userID.(string),
 		AgentID:     req.AgentID,
 		RunCount:    0,
 	}
@@ -263,7 +263,7 @@ func (h *GinWorkflowHandler) UpdateWorkflow(c *gin.Context) {
 
 	// 查询工作流 - 验证所有权
 	var workflow models.Workflow
-	result := h.DB.Where("id = ? AND user_id = ?", id, userID.(int64)).First(&workflow)
+	result := h.DB.Where("id = ? AND user_id = ?", id, userID.(string)).First(&workflow)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -350,7 +350,7 @@ func (h *GinWorkflowHandler) UpdateWorkflow(c *gin.Context) {
 	}
 
 	// 重新获取更新后的工作流
-	h.DB.Where("id = ? AND user_id = ?", id, userID.(int64)).First(&workflow)
+	h.DB.Where("id = ? AND user_id = ?", id, userID.(string)).First(&workflow)
 
 	// 返回更新后的工作流
 	c.JSON(http.StatusOK, gin.H{
@@ -384,7 +384,7 @@ func (h *GinWorkflowHandler) DeleteWorkflow(c *gin.Context) {
 
 	// 查询工作流 - 验证所有权
 	var workflow models.Workflow
-	result := h.DB.Where("id = ? AND user_id = ?", id, userID.(int64)).First(&workflow)
+	result := h.DB.Where("id = ? AND user_id = ?", id, userID.(string)).First(&workflow)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -415,7 +415,6 @@ func (h *GinWorkflowHandler) DeleteWorkflow(c *gin.Context) {
 
 		return nil
 	})
-
 	if err != nil {
 		h.Logger.Error("删除工作流失败", zap.Error(err), zap.Int64("id", id))
 		c.JSON(http.StatusInternalServerError, gin.H{

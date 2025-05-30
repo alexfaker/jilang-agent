@@ -15,10 +15,11 @@ type Agent struct {
 	Type          string          `json:"type" gorm:"type:varchar(50);not null"`
 	Category      string          `json:"category" gorm:"type:varchar(50);index"`
 	Icon          string          `json:"icon" gorm:"type:varchar(255)"`
-	Definition    json.RawMessage `json:"definition" gorm:"type:json"`                          // 代理定义JSON
-	Price         int             `json:"price" gorm:"not null;default:0"`                      // 价格（点数）
-	PurchaseCount int             `json:"purchaseCount" gorm:"column:purchase_count;default:0"` // 购买次数
-	Rating        float64         `json:"rating" gorm:"default:0.0"`                            // 评分
+	CoverImage    string          `json:"coverImage" gorm:"column:cover_image;type:varchar(500)"` // 封面图URL
+	Definition    json.RawMessage `json:"definition" gorm:"type:json"`                            // 代理定义JSON
+	Price         int             `json:"price" gorm:"not null;default:0"`                        // 价格（点数）
+	PurchaseCount int             `json:"purchaseCount" gorm:"column:purchase_count;default:0"`   // 购买次数
+	Rating        float64         `json:"rating" gorm:"default:0.0"`                              // 评分
 	IsPublic      bool            `json:"isPublic" gorm:"column:is_public;default:false"`
 	CreatedAt     time.Time       `json:"createdAt" gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt     time.Time       `json:"updatedAt" gorm:"column:updated_at;autoUpdateTime"`
@@ -36,6 +37,7 @@ type AgentCreateInput struct {
 	Type        string          `json:"type" validate:"required"`
 	Category    string          `json:"category" validate:"required"`
 	Icon        string          `json:"icon"`
+	CoverImage  string          `json:"coverImage"`
 	Definition  json.RawMessage `json:"definition" validate:"required"`
 	Price       int             `json:"price" validate:"required,min=0"`
 	IsPublic    bool            `json:"isPublic"`
@@ -48,6 +50,7 @@ type AgentUpdateInput struct {
 	Type        string          `json:"type"`
 	Category    string          `json:"category"`
 	Icon        string          `json:"icon"`
+	CoverImage  string          `json:"coverImage"`
 	Definition  json.RawMessage `json:"definition"`
 	Price       int             `json:"price"`
 	IsPublic    bool            `json:"isPublic"`
@@ -61,6 +64,7 @@ func CreateAgent(db *gorm.DB, input AgentCreateInput) (*Agent, error) {
 		Type:          input.Type,
 		Category:      input.Category,
 		Icon:          input.Icon,
+		CoverImage:    input.CoverImage,
 		Definition:    input.Definition,
 		Price:         input.Price,
 		PurchaseCount: 0,
@@ -126,6 +130,9 @@ func (a *Agent) Update(db *gorm.DB, input AgentUpdateInput) error {
 	}
 	if input.Icon != "" {
 		updates["icon"] = input.Icon
+	}
+	if input.CoverImage != "" {
+		updates["cover_image"] = input.CoverImage
 	}
 	if len(input.Definition) > 0 {
 		updates["definition"] = input.Definition

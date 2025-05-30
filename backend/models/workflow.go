@@ -24,7 +24,7 @@ type Workflow struct {
 	ID          int64           `json:"id" gorm:"primaryKey;autoIncrement"`
 	Name        string          `json:"name" gorm:"type:varchar(100);not null"`
 	Description string          `json:"description" gorm:"type:text"`
-	UserID      int64           `json:"userId" gorm:"column:user_id;index;not null"`
+	UserID      string          `json:"userID" gorm:"column:user_id;index;not null"`
 	AgentID     *int64          `json:"agentId" gorm:"column:agent_id;index"` // 关联的代理ID（购买来源）
 	Status      WorkflowStatus  `json:"status" gorm:"type:varchar(20);default:'draft';not null"`
 	Definition  json.RawMessage `json:"definition" gorm:"type:json"`            // JSON格式的工作流定义
@@ -78,7 +78,7 @@ type WorkflowUpdateInput struct {
 }
 
 // CreateWorkflow 使用GORM创建新工作流
-func CreateWorkflow(db *gorm.DB, userID int64, input WorkflowCreateInput) (*Workflow, error) {
+func CreateWorkflow(db *gorm.DB, userID string, input WorkflowCreateInput) (*Workflow, error) {
 	// 验证工作流状态是否有效
 	if input.Status == "" {
 		input.Status = WorkflowStatusDraft
@@ -119,7 +119,7 @@ func GetWorkflow(db *gorm.DB, id int64) (*Workflow, error) {
 }
 
 // ListWorkflows 使用GORM获取用户的工作流列表
-func ListWorkflows(db *gorm.DB, userID int64, status *WorkflowStatus, limit, offset int) ([]*Workflow, error) {
+func ListWorkflows(db *gorm.DB, userID string, status *WorkflowStatus, limit, offset int) ([]*Workflow, error) {
 	var workflows []*Workflow
 	query := db.Where("user_id = ?", userID)
 
@@ -177,7 +177,7 @@ func (w *Workflow) Delete(db *gorm.DB) error {
 }
 
 // Execute 使用GORM执行工作流
-func (w *Workflow) Execute(db *gorm.DB, userID int64, inputData json.RawMessage) (*WorkflowExecution, error) {
+func (w *Workflow) Execute(db *gorm.DB, userID string, inputData json.RawMessage) (*WorkflowExecution, error) {
 	// 验证工作流状态
 	if w.Status != WorkflowStatusActive {
 		return nil, gorm.ErrInvalidTransaction
@@ -224,7 +224,7 @@ func CountWorkflows(db *gorm.DB, userID int64) (int64, error) {
 }
 
 // CreateWorkflowGorm 使用GORM创建新工作流
-func CreateWorkflowGorm(db *gorm.DB, userID int64, input WorkflowCreateInput) (*Workflow, error) {
+func CreateWorkflowGorm(db *gorm.DB, userID string, input WorkflowCreateInput) (*Workflow, error) {
 	// 验证工作流状态是否有效
 	if input.Status == "" {
 		input.Status = WorkflowStatusDraft
@@ -352,7 +352,7 @@ func (w *Workflow) DeleteGorm(db *gorm.DB) error {
 }
 
 // ExecuteGorm 使用GORM执行工作流
-func (w *Workflow) ExecuteGorm(db *gorm.DB, userID int64, inputData json.RawMessage) (*WorkflowExecution, error) {
+func (w *Workflow) ExecuteGorm(db *gorm.DB, userID string, inputData json.RawMessage) (*WorkflowExecution, error) {
 	// 验证工作流状态
 	if w.Status != WorkflowStatusActive {
 		return nil, errors.New("只能执行处于活动状态的工作流")
@@ -392,7 +392,7 @@ func (w *Workflow) ExecuteGorm(db *gorm.DB, userID int64, inputData json.RawMess
 }
 
 // CountWorkflowsGorm 使用GORM统计用户的工作流数量
-func CountWorkflowsGorm(db *gorm.DB, userID int64) (int64, error) {
+func CountWorkflowsGorm(db *gorm.DB, userID string) (int64, error) {
 	var count int64
 	if err := db.Model(&Workflow{}).Where("user_id = ?", userID).Count(&count).Error; err != nil {
 		return 0, fmt.Errorf("统计工作流数量失败: %w", err)

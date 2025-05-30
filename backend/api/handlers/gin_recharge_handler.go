@@ -34,14 +34,16 @@ func (h *GinRechargeHandler) GetRechargePackages(c *gin.Context) {
 	})
 }
 
-// CreateRechargeOrderRequest 创建充值订单请求结构
-type CreateRechargeOrderRequest struct {
-	PackageID     int                  `json:"packageId" binding:"required"`
-	PaymentMethod models.PaymentMethod `json:"paymentMethod" binding:"required"`
+// CreateRechargeRequest 创建充值订单请求体
+type CreateRechargeRequest struct {
+	Amount        int    `json:"amount" binding:"required,min=100"` // 充值金额（分）
+	Points        int    `json:"points" binding:"required,min=100"` // 获得点数
+	PaymentMethod string `json:"paymentMethod" binding:"required"`  // 支付方式
+	PackageID     *int   `json:"packageId,omitempty"`               // 套餐ID（可选）
 }
 
-// CreateRechargeOrder 创建充值订单
-func (h *GinRechargeHandler) CreateRechargeOrder(c *gin.Context) {
+// CreateRecharge 创建充值订单
+func (h *GinRechargeHandler) CreateRecharge(c *gin.Context) {
 	// 获取用户ID
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -52,50 +54,27 @@ func (h *GinRechargeHandler) CreateRechargeOrder(c *gin.Context) {
 		return
 	}
 
-	// 解析请求
-	var req CreateRechargeOrderRequest
+	// 解析请求体
+	var req CreateRechargeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "error",
-			"message": "请求数据格式错误: " + err.Error(),
+			"message": "请求参数错误：" + err.Error(),
 		})
 		return
 	}
 
-	// 获取充值套餐信息
-	packages := models.GetRechargePackages()
-	var selectedPackage *models.RechargePackage
-	for _, pkg := range packages {
-		if pkg.ID == req.PackageID {
-			selectedPackage = pkg
-			break
-		}
-	}
-
-	if selectedPackage == nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "error",
-			"message": "无效的充值套餐",
-		})
-		return
-	}
+	uid := userID.(string)
 
 	// 验证支付方式
-	validPaymentMethods := []models.PaymentMethod{
-		models.PaymentMethodAlipay,
-		models.PaymentMethodWechat,
-		models.PaymentMethodUnion,
-		models.PaymentMethodPaypal,
-	}
-	validPayment := false
-	for _, method := range validPaymentMethods {
-		if req.PaymentMethod == method {
-			validPayment = true
-			break
-		}
+	validPaymentMethods := map[string]models.PaymentMethod{
+		"alipay": models.PaymentMethodAlipay,
+		"wechat": models.PaymentMethodWechat,
+		"credit": models.PaymentMethodCredit,
 	}
 
-	if !validPayment {
+	paymentMethod, ok := validPaymentMethods[req.PaymentMethod]
+	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "error",
 			"message": "不支持的支付方式",
@@ -104,18 +83,22 @@ func (h *GinRechargeHandler) CreateRechargeOrder(c *gin.Context) {
 	}
 
 	// 创建充值订单
-	order := models.RechargeOrder{
-		UserID:        userID.(int64),
-		OrderNo:       generateOrderNo(),
-		Amount:        selectedPackage.Amount,
-		Points:        selectedPackage.TotalPoints,
-		PaymentMethod: req.PaymentMethod,
+	order := &models.RechargeOrder{
+		UserID:        uid,
+		Amount:        req.Amount,
+		Points:        req.Points,
+		PaymentMethod: paymentMethod,
 		Status:        models.OrderStatusPending,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
 
-	result := h.DB.Create(&order)
-	if result.Error != nil {
-		h.Logger.Error("创建充值订单失败", zap.Error(result.Error))
+	// 生成订单号
+	order.OrderNo = order.GenerateOrderNo()
+
+	// 保存订单到数据库
+	if err := h.DB.Create(order).Error; err != nil {
+		h.Logger.Error("创建充值订单失败", zap.Error(err), zap.String("userId", uid))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",
 			"message": "创建充值订单失败",
@@ -123,23 +106,32 @@ func (h *GinRechargeHandler) CreateRechargeOrder(c *gin.Context) {
 		return
 	}
 
-	// 返回订单信息（包含支付相关信息）
-	c.JSON(http.StatusCreated, gin.H{
+	h.Logger.Info("充值订单创建成功",
+		zap.String("orderNo", order.OrderNo),
+		zap.String("userId", uid),
+		zap.Int("amount", req.Amount),
+		zap.Int("points", req.Points),
+	)
+
+	// 返回订单信息
+	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
 		"data": gin.H{
-			"order": order,
-			"payment": gin.H{
-				"orderNo":       order.OrderNo,
-				"amount":        order.Amount,
-				"paymentMethod": order.PaymentMethod,
-				"paymentUrl":    generatePaymentUrl(order.OrderNo, order.PaymentMethod),
-			},
+			"orderId":       order.ID,
+			"orderNo":       order.OrderNo,
+			"amount":        order.Amount,
+			"points":        order.Points,
+			"paymentMethod": order.PaymentMethod,
+			"status":        order.Status,
+			"createdAt":     order.CreatedAt,
+			// 在实际环境中，这里应该返回支付链接或支付参数
+			"paymentUrl": generatePaymentUrl(order),
 		},
 	})
 }
 
-// GetRechargeOrders 获取充值订单列表
-func (h *GinRechargeHandler) GetRechargeOrders(c *gin.Context) {
+// GetRechargeHistory 获取充值历史
+func (h *GinRechargeHandler) GetRechargeHistory(c *gin.Context) {
 	// 获取用户ID
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -169,16 +161,10 @@ func (h *GinRechargeHandler) GetRechargeOrders(c *gin.Context) {
 		}
 	}
 
-	// 获取状态筛选
-	statusFilter := c.Query("status")
+	uid := userID.(string)
 
 	// 构建查询
-	query := h.DB.Model(&models.RechargeOrder{}).Where("user_id = ?", userID.(int64))
-
-	// 应用状态筛选
-	if statusFilter != "" {
-		query = query.Where("status = ?", statusFilter)
-	}
+	query := h.DB.Model(&models.RechargeOrder{}).Where("user_id = ?", uid)
 
 	// 获取总记录数
 	var total int64
@@ -188,10 +174,10 @@ func (h *GinRechargeHandler) GetRechargeOrders(c *gin.Context) {
 	var orders []models.RechargeOrder
 	result := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&orders)
 	if result.Error != nil {
-		h.Logger.Error("获取充值订单列表失败", zap.Error(result.Error))
+		h.Logger.Error("获取充值历史失败", zap.Error(result.Error))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",
-			"message": "获取充值订单列表失败",
+			"message": "获取充值历史失败",
 		})
 		return
 	}
@@ -211,8 +197,8 @@ func (h *GinRechargeHandler) GetRechargeOrders(c *gin.Context) {
 	})
 }
 
-// GetRechargeOrder 获取单个充值订单详情
-func (h *GinRechargeHandler) GetRechargeOrder(c *gin.Context) {
+// GetRechargeStatus 获取充值状态
+func (h *GinRechargeHandler) GetRechargeStatus(c *gin.Context) {
 	// 获取用户ID
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -234,319 +220,142 @@ func (h *GinRechargeHandler) GetRechargeOrder(c *gin.Context) {
 		return
 	}
 
+	uid := userID.(string)
+
 	// 查询订单 - 验证所有权
 	var order models.RechargeOrder
-	result := h.DB.Where("id = ? AND user_id = ?", id, userID.(int64)).First(&order)
+	result := h.DB.Where("id = ? AND user_id = ?", id, uid).First(&order)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
 				"status":  "error",
-				"message": "充值订单不存在",
+				"message": "订单不存在",
 			})
 		} else {
-			h.Logger.Error("获取充值订单失败", zap.Error(result.Error), zap.Int64("id", id))
+			h.Logger.Error("获取订单状态失败", zap.Error(result.Error), zap.Int64("id", id))
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  "error",
-				"message": "获取充值订单失败",
+				"message": "获取订单状态失败",
 			})
 		}
 		return
 	}
 
-	// 返回订单详情
+	// 返回订单状态
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
 		"data":   order,
 	})
 }
 
-// PaymentNotifyRequest 支付通知请求结构
-type PaymentNotifyRequest struct {
-	OrderNo   string `json:"orderNo" binding:"required"`
-	PaymentID string `json:"paymentId" binding:"required"`
-	Status    string `json:"status" binding:"required"`
-}
-
-// PaymentNotify 处理支付通知
-func (h *GinRechargeHandler) PaymentNotify(c *gin.Context) {
-	// 解析请求
-	var req PaymentNotifyRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+// ProcessPaymentCallback 处理支付回调（用于支付网关回调）
+func (h *GinRechargeHandler) ProcessPaymentCallback(c *gin.Context) {
+	// 获取订单号
+	orderNo := c.Param("orderNo")
+	if orderNo == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "error",
-			"message": "请求数据格式错误: " + err.Error(),
+			"message": "订单号不能为空",
 		})
 		return
 	}
 
 	// 查询订单
 	var order models.RechargeOrder
-	result := h.DB.Where("order_no = ?", req.OrderNo).First(&order)
+	result := h.DB.Where("order_no = ?", orderNo).First(&order)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{
-				"status":  "error",
-				"message": "订单不存在",
-			})
-		} else {
-			h.Logger.Error("查询充值订单失败", zap.Error(result.Error), zap.String("orderNo", req.OrderNo))
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"status":  "error",
-				"message": "查询充值订单失败",
-			})
-		}
-		return
-	}
-
-	// 检查订单状态
-	if order.Status != models.OrderStatusPending {
-		c.JSON(http.StatusBadRequest, gin.H{
+		h.Logger.Error("支付回调：订单不存在", zap.String("orderNo", orderNo))
+		c.JSON(http.StatusNotFound, gin.H{
 			"status":  "error",
-			"message": "订单状态不正确",
+			"message": "订单不存在",
 		})
 		return
 	}
 
-	// 处理支付成功
-	if req.Status == "success" || req.Status == "paid" {
-		err := h.DB.Transaction(func(tx *gorm.DB) error {
-			// 更新订单状态
-			if err := tx.Model(&order).Updates(map[string]interface{}{
-				"status":     models.OrderStatusPaid,
-				"payment_id": req.PaymentID,
-				"paid_at":    gorm.Expr("NOW()"),
-			}).Error; err != nil {
-				return err
-			}
+	// 验证支付状态（这里应该调用支付网关API验证）
+	// 模拟支付成功
+	if order.Status == models.OrderStatusPending {
+		// 开始事务
+		tx := h.DB.Begin()
 
-			// 获取用户信息
-			var user models.User
-			if err := tx.First(&user, order.UserID).Error; err != nil {
-				return err
-			}
+		// 更新订单状态
+		order.Status = models.OrderStatusCompleted
+		order.PaymentID = "MOCK_PAYMENT_" + strconv.FormatInt(time.Now().Unix(), 10)
+		order.UpdatedAt = time.Now()
 
-			// 增加用户点数
-			newBalance := user.Points + order.Points
-			if err := tx.Model(&user).Update("points", newBalance).Error; err != nil {
-				return err
-			}
-
-			// 创建点数交易记录
-			transaction := models.PointsTransaction{
-				UserID:      order.UserID,
-				Type:        models.TransactionTypeRecharge,
-				Amount:      order.Points,
-				Balance:     newBalance,
-				Description: "充值",
-				RelatedID:   &order.ID,
-			}
-			if err := tx.Create(&transaction).Error; err != nil {
-				return err
-			}
-
-			return nil
-		})
-
-		if err != nil {
-			h.Logger.Error("处理充值成功通知失败", zap.Error(err), zap.String("orderNo", req.OrderNo))
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"status":  "error",
-				"message": "处理充值失败",
-			})
-			return
-		}
-
-		h.Logger.Info("充值成功", zap.String("orderNo", req.OrderNo), zap.Int64("userId", order.UserID), zap.Int("points", order.Points))
-	} else {
-		// 处理支付失败或取消
-		status := models.OrderStatusCancelled
-		if req.Status == "failed" {
-			status = models.OrderStatusCancelled
-		}
-
-		if err := h.DB.Model(&order).Updates(map[string]interface{}{
-			"status":     status,
-			"payment_id": req.PaymentID,
-		}).Error; err != nil {
-			h.Logger.Error("更新订单状态失败", zap.Error(err), zap.String("orderNo", req.OrderNo))
+		if err := tx.Save(&order).Error; err != nil {
+			tx.Rollback()
+			h.Logger.Error("更新订单状态失败", zap.Error(err))
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  "error",
 				"message": "更新订单状态失败",
 			})
 			return
 		}
-	}
 
-	// 返回成功响应
-	c.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "处理完成",
-	})
-}
-
-// PaymentCallbackRequest 支付回调请求结构
-type PaymentCallbackRequest struct {
-	OrderNumber   string `json:"orderNumber" binding:"required"`
-	TransactionID string `json:"transactionId" binding:"required"`
-	Status        string `json:"status" binding:"required"`
-	Amount        int    `json:"amount" binding:"required"`
-	Signature     string `json:"signature" binding:"required"`
-}
-
-// PaymentCallback 处理支付回调
-func (h *GinRechargeHandler) PaymentCallback(c *gin.Context) {
-	// 解析请求体
-	var req PaymentCallbackRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "error",
-			"message": "无效的请求数据: " + err.Error(),
-		})
-		return
-	}
-
-	// 验证签名（这里应该实现真实的签名验证逻辑）
-	// if !verifySignature(req) {
-	//     c.JSON(http.StatusBadRequest, gin.H{
-	//         "status": "error",
-	//         "message": "签名验证失败",
-	//     })
-	//     return
-	// }
-
-	// 查找充值订单
-	var order models.RechargeOrder
-	result := h.DB.Where("order_number = ?", req.OrderNumber).First(&order)
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{
-				"status":  "error",
-				"message": "订单不存在",
-			})
-		} else {
-			h.Logger.Error("查询充值订单失败", zap.Error(result.Error), zap.String("orderNumber", req.OrderNumber))
+		// 更新用户积分
+		var user models.User
+		if err := tx.Where("user_id = ?", order.UserID).First(&user).Error; err != nil {
+			tx.Rollback()
+			h.Logger.Error("查询用户失败", zap.Error(err))
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  "error",
-				"message": "查询订单失败",
+				"message": "查询用户失败",
 			})
-		}
-		return
-	}
-
-	// 检查订单状态
-	if order.Status != models.OrderStatusPending {
-		c.JSON(http.StatusConflict, gin.H{
-			"status":  "error",
-			"message": "订单状态异常",
-		})
-		return
-	}
-
-	// 验证金额
-	if req.Amount != order.Amount {
-		h.Logger.Error("支付回调金额不匹配",
-			zap.Int("expected", order.Amount),
-			zap.Int("received", req.Amount),
-			zap.String("orderNumber", req.OrderNumber))
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "error",
-			"message": "金额不匹配",
-		})
-		return
-	}
-
-	// 根据支付状态更新订单
-	var orderStatus models.OrderStatus
-	switch req.Status {
-	case "success", "completed":
-		orderStatus = models.OrderStatusPaid
-	case "failed", "cancelled":
-		orderStatus = models.OrderStatusCancelled
-	default:
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "error",
-			"message": "无效的支付状态",
-		})
-		return
-	}
-
-	// 使用事务处理充值
-	err := h.DB.Transaction(func(tx *gorm.DB) error {
-		// 更新订单状态
-		updates := map[string]interface{}{
-			"status":     orderStatus,
-			"payment_id": req.TransactionID,
-			"paid_at":    time.Now(),
+			return
 		}
 
-		if err := tx.Model(&order).Updates(updates).Error; err != nil {
-			return err
+		user.Points += order.Points
+		if err := tx.Save(&user).Error; err != nil {
+			tx.Rollback()
+			h.Logger.Error("更新用户积分失败", zap.Error(err))
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  "error",
+				"message": "更新用户积分失败",
+			})
+			return
 		}
 
-		// 如果支付成功，增加用户点数
-		if orderStatus == models.OrderStatusPaid {
-			// 获取用户信息
-			var user models.User
-			if err := tx.First(&user, order.UserID).Error; err != nil {
-				return err
-			}
-
-			// 增加用户点数
-			newBalance := user.Points + order.Points
-			if err := tx.Model(&user).Update("points", newBalance).Error; err != nil {
-				return err
-			}
-
-			// 创建点数交易记录
-			transaction := models.PointsTransaction{
-				UserID:      order.UserID,
-				Type:        models.TransactionTypeRecharge,
-				Amount:      order.Points,
-				Balance:     newBalance,
-				Description: "充值获得点数",
-				RelatedID:   &order.ID,
-			}
-
-			if err := tx.Create(&transaction).Error; err != nil {
-				return err
-			}
+		// 创建积分交易记录
+		transaction := &models.PointsTransaction{
+			UserID:      order.UserID,
+			Type:        models.TransactionTypeRecharge,
+			Amount:      order.Points,
+			Balance:     user.Points, // 交易后的余额
+			Description: "充值获得积分",
+			RelatedID:   &order.ID,
+			CreatedAt:   time.Now(),
 		}
 
-		return nil
-	})
+		if err := tx.Create(transaction).Error; err != nil {
+			tx.Rollback()
+			h.Logger.Error("创建积分交易记录失败", zap.Error(err))
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  "error",
+				"message": "创建积分交易记录失败",
+			})
+			return
+		}
 
-	if err != nil {
-		h.Logger.Error("处理支付回调失败", zap.Error(err), zap.String("orderNumber", req.OrderNumber))
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "error",
-			"message": "处理支付回调失败",
-		})
-		return
+		// 提交事务
+		tx.Commit()
+
+		h.Logger.Info("充值支付成功",
+			zap.String("orderNo", orderNo),
+			zap.String("userId", order.UserID),
+			zap.Int("points", order.Points),
+		)
 	}
-
-	// 记录成功日志
-	h.Logger.Info("支付回调处理成功",
-		zap.String("orderNumber", req.OrderNumber),
-		zap.String("transactionId", req.TransactionID),
-		zap.String("status", req.Status),
-		zap.Int("amount", req.Amount))
 
 	// 返回成功响应
 	c.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "支付回调处理成功",
+		"status": "success",
+		"data":   order,
 	})
 }
 
-// generateOrderNo 生成订单号（简化实现）
-func generateOrderNo() string {
-	return "RO" + strconv.FormatInt(time.Now().UnixNano(), 10)
-}
-
-// generatePaymentUrl 生成支付URL（简化实现）
-func generatePaymentUrl(orderNo string, method models.PaymentMethod) string {
-	// 这里应该根据不同的支付方式生成对应的支付URL
-	// 实际实现中需要调用相应的支付服务API
-	baseUrl := "https://api.payment.example.com/"
-	return baseUrl + "pay?orderNo=" + orderNo + "&method=" + string(method)
+// generatePaymentUrl 生成支付链接（模拟）
+func generatePaymentUrl(order *models.RechargeOrder) string {
+	// 在实际环境中，这里应该调用支付网关API生成支付链接
+	return "https://pay.example.com/pay?orderNo=" + order.OrderNo
 }

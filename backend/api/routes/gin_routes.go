@@ -78,9 +78,6 @@ func InitGinRoutes(db *gorm.DB, logger *zap.Logger, cfg *config.Config) *gin.Eng
 		api.GET("/agents/:id", agentHandler.GetAgent)                 // 获取代理详情
 		api.GET("/agent-categories", agentHandler.GetAgentCategories) // 获取代理分类
 
-		// 充值套餐 - 公开的充值选项
-		api.GET("/recharge/packages", rechargeHandler.GetRechargePackages)
-
 		// 需要认证的路由
 		authorized := api.Group("")
 		authorized.Use(middleware.GinAuthMiddleware(cfg.Auth.JWTSecret))
@@ -90,6 +87,12 @@ func InitGinRoutes(db *gorm.DB, logger *zap.Logger, cfg *config.Config) *gin.Eng
 			authorized.PUT("/user/profile", userHandler.UpdateUserProfile)
 			authorized.POST("/user/change-password", userHandler.ChangePassword)
 			authorized.GET("/user/:id", userHandler.GetUserByID)
+
+			// 用户当前资料接口 (复用现有用户handler)
+			authorized.GET("/users/me", userHandler.GetCurrentUser)
+			authorized.PUT("/users/me", userHandler.UpdateUserProfile)
+			authorized.POST("/users/me/avatar", userHandler.UploadAvatar)
+			authorized.PUT("/users/me/password", userHandler.ChangePassword)
 
 			// 设置相关
 			authorized.GET("/settings", settingsHandler.GetSettings)
@@ -113,10 +116,9 @@ func InitGinRoutes(db *gorm.DB, logger *zap.Logger, cfg *config.Config) *gin.Eng
 			authorized.GET("/purchase/history", purchaseHandler.GetPurchaseHistory) // 购买历史
 
 			// 充值相关
-			authorized.POST("/recharge/order", rechargeHandler.CreateRechargeOrder)        // 创建充值订单
-			authorized.GET("/recharge/orders", rechargeHandler.GetRechargeOrders)          // 获取充值订单
-			authorized.GET("/recharge/orders/:id", rechargeHandler.GetRechargeOrder)       // 获取充值订单详情
-			authorized.POST("/recharge/payment/callback", rechargeHandler.PaymentCallback) // 支付回调
+			authorized.POST("/recharge", rechargeHandler.CreateRecharge)              // 创建充值订单
+			authorized.GET("/recharge/history", rechargeHandler.GetRechargeHistory)   // 获取充值历史
+			authorized.GET("/recharge/:id/status", rechargeHandler.GetRechargeStatus) // 获取充值状态
 
 			// 点数相关
 			authorized.GET("/points/balance", pointsHandler.GetPointsBalance)              // 获取点数余额
@@ -134,6 +136,9 @@ func InitGinRoutes(db *gorm.DB, logger *zap.Logger, cfg *config.Config) *gin.Eng
 			authorized.GET("/stats/workflows", statsHandler.GetWorkflowStats)
 			authorized.GET("/stats/executions", statsHandler.GetExecutionStats)
 		}
+
+		// 支付回调（不需要认证，由支付网关调用）
+		api.POST("/payment/callback/:orderNo", rechargeHandler.ProcessPaymentCallback) // 支付回调
 	}
 
 	return r

@@ -1,6 +1,8 @@
 module github.com/alexfaker/jilang-agent
 
-go 1.24.3
+go 1.21
+
+toolchain go1.21.9
 
 require (
 	github.com/gin-contrib/cors v1.7.5

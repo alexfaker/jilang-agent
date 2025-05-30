@@ -83,26 +83,16 @@ func (h *GinAuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	// 加密密码
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	// 使用CreateUser函数创建用户（包含UserID生成逻辑）
+	userInput := models.UserRegisterInput{
+		Username: req.Username,
+		Email:    req.Email,
+		Password: req.Password,
+		FullName: req.Username, // 如果没有提供全名，使用用户名作为默认值
+	}
+
+	user, err := models.CreateUser(h.DB, userInput)
 	if err != nil {
-		h.Logger.Error("密码加密失败", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "error",
-			"message": "注册失败: " + err.Error(),
-		})
-		return
-	}
-
-	// 创建用户
-	user := models.User{
-		Username:     req.Username,
-		Email:        req.Email,
-		PasswordHash: string(hashedPassword),
-		Role:         "user", // 默认角色
-	}
-
-	if err := h.DB.Create(&user).Error; err != nil {
 		h.Logger.Error("创建用户失败", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",
@@ -112,7 +102,7 @@ func (h *GinAuthHandler) Register(c *gin.Context) {
 	}
 
 	// 生成令牌
-	token, err := h.generateToken(user)
+	token, err := h.generateToken(*user)
 	if err != nil {
 		h.Logger.Error("生成令牌失败", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -127,7 +117,7 @@ func (h *GinAuthHandler) Register(c *gin.Context) {
 		"status": "success",
 		"data": gin.H{
 			"user": gin.H{
-				"id":       user.ID,
+				"userID":   user.UserID,
 				"username": user.Username,
 				"email":    user.Email,
 				"role":     user.Role,
@@ -193,7 +183,7 @@ func (h *GinAuthHandler) Login(c *gin.Context) {
 	}
 
 	// 更新最后登录时间
-	if err := h.DB.Model(&user).Update("last_login", time.Now()).Error; err != nil {
+	if err := h.DB.Model(&user).Update("last_login_at", time.Now()).Error; err != nil {
 		h.Logger.Warn("更新最后登录时间失败", zap.Error(err))
 	}
 
@@ -315,7 +305,7 @@ func (h *GinAuthHandler) generateToken(user models.User) (string, error) {
 
 	// 创建令牌声明
 	claims := jwt.MapClaims{
-		"user_id":  user.ID,
+		"user_id":  user.UserID,
 		"username": user.Username,
 		"role":     user.Role,
 		"exp":      expirationTime.Unix(),

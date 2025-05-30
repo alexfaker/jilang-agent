@@ -52,7 +52,7 @@ func (h *GinStatsHandler) GetDashboardStats(c *gin.Context) {
 		})
 		return
 	}
-	uid := userID.(int64)
+	uid := userID.(string)
 
 	// 获取工作流总数
 	var totalWorkflows int64
@@ -212,7 +212,7 @@ func (h *GinStatsHandler) GetWorkflowStats(c *gin.Context) {
 		})
 		return
 	}
-	uid := userID.(int64)
+	uid := userID.(string)
 
 	// 查询工作流统计数据
 	var stats []WorkflowStats
@@ -228,9 +228,9 @@ func (h *GinStatsHandler) GetWorkflowStats(c *gin.Context) {
 			CASE WHEN COUNT(workflow_executions.id) > 0 THEN 
 				(SUM(CASE WHEN workflow_executions.status = 'succeeded' THEN 1 ELSE 0 END) * 100.0 / COUNT(workflow_executions.id)) 
 			ELSE 0 END as success_rate,
-			AVG(CASE WHEN workflow_executions.end_time IS NOT NULL AND workflow_executions.start_time IS NOT NULL THEN 
-				EXTRACT(EPOCH FROM (workflow_executions.end_time - workflow_executions.start_time)) * 1000 
-			ELSE NULL END) as avg_duration_ms
+			COALESCE(AVG(CASE WHEN workflow_executions.completed_at IS NOT NULL AND workflow_executions.started_at IS NOT NULL THEN 
+				TIMESTAMPDIFF(MICROSECOND, workflow_executions.started_at, workflow_executions.completed_at) / 1000
+			ELSE NULL END), 0) as avg_duration_ms
 		`).
 		Joins("LEFT JOIN workflow_executions ON workflows.id = workflow_executions.workflow_id").
 		Where("workflows.user_id = ?", uid).
@@ -280,7 +280,7 @@ func (h *GinStatsHandler) GetExecutionStats(c *gin.Context) {
 		})
 		return
 	}
-	uid := userID.(int64)
+	uid := userID.(string)
 
 	// 获取时间范围参数
 	startDateStr := c.DefaultQuery("start_date", time.Now().AddDate(0, 0, -30).Format("2006-01-02"))
@@ -328,10 +328,10 @@ func (h *GinStatsHandler) GetExecutionStats(c *gin.Context) {
 	}
 	var statusCounts []StatusCount
 	if err := h.DB.Model(&models.WorkflowExecution{}).
-		Select("status, COUNT(*) as count").
+		Select("workflow_executions.status, COUNT(*) as count").
 		Joins("JOIN workflows ON workflow_executions.workflow_id = workflows.id").
 		Where("workflows.user_id = ? AND workflow_executions.created_at BETWEEN ? AND ?", uid, startDate, endDate).
-		Group("status").
+		Group("workflow_executions.status").
 		Scan(&statusCounts).Error; err != nil {
 		h.Logger.Error("获取状态计数失败", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -360,9 +360,9 @@ func (h *GinStatsHandler) GetExecutionStats(c *gin.Context) {
 	// 获取平均执行时间
 	var avgDuration float64
 	if err := h.DB.Model(&models.WorkflowExecution{}).
-		Select("AVG(EXTRACT(EPOCH FROM (end_time - start_time)) * 1000) as avg_duration").
+		Select("COALESCE(AVG(TIMESTAMPDIFF(MICROSECOND, workflow_executions.started_at, workflow_executions.completed_at) / 1000), 0) as avg_duration").
 		Joins("JOIN workflows ON workflow_executions.workflow_id = workflows.id").
-		Where("workflows.user_id = ? AND workflow_executions.created_at BETWEEN ? AND ? AND workflow_executions.end_time IS NOT NULL AND workflow_executions.start_time IS NOT NULL", uid, startDate, endDate).
+		Where("workflows.user_id = ? AND workflow_executions.created_at BETWEEN ? AND ? AND workflow_executions.completed_at IS NOT NULL AND workflow_executions.started_at IS NOT NULL", uid, startDate, endDate).
 		Scan(&avgDuration).Error; err != nil {
 		h.Logger.Error("获取平均执行时间失败", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{

@@ -78,9 +78,9 @@
             <div class="flex items-center">
               <div :class="[
                 'w-10 h-10 rounded-full flex items-center justify-center mr-3',
-                getWorkflowIconBg(workflow.category)
+                getWorkflowIconBg(getCategoryFromWorkflow(workflow))
               ]">
-                <component :is="getWorkflowIcon(workflow.category)" :class="getWorkflowIconColor(workflow.category)" class="w-5 h-5" />
+                <component :is="getWorkflowIcon(getCategoryFromWorkflow(workflow))" :class="getWorkflowIconColor(getCategoryFromWorkflow(workflow))" class="w-5 h-5" />
               </div>
               <div>
                 <h3 class="text-lg font-semibold text-gray-800">{{ workflow.name }}</h3>
@@ -88,7 +88,7 @@
                   <span :class="getBadgeClass(workflow.status)">
                     {{ getStatusText(workflow.status) }}
                   </span>
-                  <span class="text-xs text-gray-500 ml-2">更新于 {{ formatTimeAgo(workflow.updated_at) }}</span>
+                  <span class="text-xs text-gray-500 ml-2">更新于 {{ formatTimeAgo(workflow.updatedAt || workflow.updated_at) }}</span>
                 </div>
               </div>
             </div>
@@ -139,11 +139,11 @@
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center">
               <ShareIcon class="w-4 h-4 text-gray-400 mr-1" />
-              <span class="text-xs text-gray-500">{{ workflow.agent_count || 0 }}个AI代理</span>
+              <span class="text-xs text-gray-500">{{ workflow.agentCount || workflow.agent_count || 0 }}个AI代理</span>
             </div>
             <div class="flex items-center">
               <ClockIcon class="w-4 h-4 text-gray-400 mr-1" />
-              <span class="text-xs text-gray-500">执行 {{ workflow.execution_count || 0 }} 次</span>
+              <span class="text-xs text-gray-500">执行 {{ workflow.runCount || workflow.execution_count || 0 }} 次</span>
             </div>
           </div>
           
@@ -183,7 +183,7 @@
     </div>
     
     <!-- 空状态 -->
-    <div v-if="workflows.length === 0 && !loading" class="text-center py-12">
+    <div v-if="workflows.length === 0 && !loading && !error" class="text-center py-12">
       <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
         <RectangleStackIcon class="w-8 h-8 text-gray-400" />
       </div>
@@ -198,6 +198,22 @@
       </router-link>
     </div>
     
+    <!-- 错误状态 -->
+    <div v-if="error && !loading" class="text-center py-12">
+      <div class="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+        <ExclamationTriangleIcon class="w-8 h-8 text-red-500" />
+      </div>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">加载失败</h3>
+      <p class="text-gray-600 mb-6">{{ error }}</p>
+      <button
+        @click="fetchWorkflows"
+        class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+      >
+        <ArrowPathIcon class="w-5 h-5 mr-2" />
+        重试
+      </button>
+    </div>
+    
     <!-- 加载状态 -->
     <div v-if="loading" class="text-center py-12">
       <ArrowPathIcon class="w-8 h-8 mx-auto mb-4 text-indigo-600 animate-spin" />
@@ -210,6 +226,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
+import { workflowApi } from '../../api';
 import {
   PlayIcon,
   EllipsisVerticalIcon,
@@ -221,100 +238,77 @@ import {
   CpuChipIcon,
   ChatBubbleLeftRightIcon,
   DocumentTextIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline';
 
 const router = useRouter();
 const toast = useToast();
 
 // 状态变量
-const loading = ref(false);
+const loading = ref(true);
+const error = ref(null);
 const currentFilter = ref('all');
 const sortOrder = ref('newest');
 const openDropdown = ref(null);
 const executingWorkflows = ref([]);
+const workflows = ref([]);
+const totalItems = ref(0);
+const currentPage = ref(1);
+const itemsPerPage = ref(20);
 
-// 模拟数据
-const workflows = ref([
-  {
-    id: 1,
-    name: '数据处理自动化',
-    description: '自动处理CSV数据并生成分析报告，定期发送至指定邮箱。',
-    status: 'active',
-    category: 'data',
-    agent_count: 3,
-    execution_count: 178,
-    created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000)
-  },
-  {
-    id: 2,
-    name: '客户支持回复',
-    description: '根据客户问题自动生成回复建议，支持多种语言和专业领域。',
-    status: 'active',
-    category: 'support',
-    agent_count: 2,
-    execution_count: 245,
-    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    updated_at: new Date(Date.now() - 24 * 60 * 60 * 1000)
-  },
-  {
-    id: 3,
-    name: '智能内容审核',
-    description: '自动审核文本内容，检测不当言论、敏感信息和违规内容。',
-    status: 'active',
-    category: 'content',
-    agent_count: 4,
-    execution_count: 97,
-    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-  },
-  {
-    id: 4,
-    name: '市场数据分析',
-    description: '收集和分析市场数据，生成趋势报告和投资建议。',
-    status: 'active',
-    category: 'analysis',
-    agent_count: 5,
-    execution_count: 156,
-    created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    updated_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-  },
-  {
-    id: 5,
-    name: '邮件营销自动化',
-    description: '根据用户行为自动发送个性化营销邮件。',
-    status: 'draft',
-    category: 'marketing',
-    agent_count: 2,
-    execution_count: 0,
-    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+// 获取工作流数据
+const fetchWorkflows = async () => {
+  loading.value = true;
+  error.value = null;
+  
+  try {
+    const params = {
+      limit: itemsPerPage.value,
+      offset: (currentPage.value - 1) * itemsPerPage.value
+    };
+    
+    // 如果有状态筛选且不是'all'，添加状态参数
+    if (currentFilter.value !== 'all') {
+      params.status = currentFilter.value;
+    }
+    
+    const response = await workflowApi.getWorkflows(params);
+    
+    if (response.status === 'success') {
+      workflows.value = response.data.workflows || [];
+      totalItems.value = response.data.pagination.total || 0;
+    } else {
+      throw new Error(response.message || '获取工作流列表失败');
+    }
+  } catch (err) {
+    console.error('获取工作流列表失败:', err);
+    error.value = '加载工作流失败：' + (err.message || '未知错误');
+    workflows.value = [];
+    totalItems.value = 0;
+    toast.error('加载工作流失败：' + (err.message || '未知错误'));
+  } finally {
+    loading.value = false;
   }
-]);
+};
 
 // 计算属性
 const filteredWorkflows = computed(() => {
   let filtered = workflows.value;
   
-  // 按状态过滤
-  if (currentFilter.value !== 'all') {
-    filtered = filtered.filter(w => w.status === currentFilter.value);
-  }
-  
-  // 排序
+  // API已经处理了状态过滤，这里主要处理排序
   switch (sortOrder.value) {
     case 'newest':
-      filtered = filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      filtered = filtered.sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at));
       break;
     case 'name':
       filtered = filtered.sort((a, b) => a.name.localeCompare(b.name));
       break;
     case 'last_run':
-      filtered = filtered.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+      filtered = filtered.sort((a, b) => new Date(b.updatedAt || b.updated_at) - new Date(a.updatedAt || a.updated_at));
       break;
     case 'most_run':
-      filtered = filtered.sort((a, b) => b.execution_count - a.execution_count);
+      filtered = filtered.sort((a, b) => (b.runCount || b.execution_count || 0) - (a.runCount || a.execution_count || 0));
       break;
   }
   
@@ -322,8 +316,10 @@ const filteredWorkflows = computed(() => {
 });
 
 // 方法
-const setFilter = (filter) => {
+const setFilter = async (filter) => {
   currentFilter.value = filter;
+  currentPage.value = 1; // 重置页码
+  await fetchWorkflows();
 };
 
 const applySorting = () => {
@@ -331,8 +327,9 @@ const applySorting = () => {
 };
 
 const formatTimeAgo = (timestamp) => {
+  const date = new Date(timestamp);
   const now = new Date();
-  const diff = now - timestamp;
+  const diff = now - date;
   const minutes = Math.floor(diff / (1000 * 60));
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -347,6 +344,25 @@ const formatTimeAgo = (timestamp) => {
     return `${days}天前`;
   } else {
     return `${Math.floor(days / 7)}周前`;
+  }
+};
+
+// 获取工作流分类（从名称或描述推断）
+const getCategoryFromWorkflow = (workflow) => {
+  const name = workflow.name.toLowerCase();
+  const description = (workflow.description || '').toLowerCase();
+  const content = name + ' ' + description;
+  
+  if (content.includes('数据') || content.includes('分析') || content.includes('统计')) {
+    return 'data';
+  } else if (content.includes('客服') || content.includes('支持') || content.includes('回复')) {
+    return 'support';
+  } else if (content.includes('内容') || content.includes('审核') || content.includes('文本')) {
+    return 'content';
+  } else if (content.includes('分析') || content.includes('市场') || content.includes('投资')) {
+    return 'analysis';
+  } else {
+    return 'data'; // 默认分类
   }
 };
 
@@ -405,6 +421,8 @@ const getBadgeClass = (status) => {
       return `${baseClasses} badge-inactive`;
     case 'draft':
       return `${baseClasses} badge-draft`;
+    case 'archived':
+      return `${baseClasses} badge-archived`;
     default:
       return `${baseClasses} badge-draft`;
   }
@@ -418,6 +436,8 @@ const getStatusText = (status) => {
       return '暂停';
     case 'draft':
       return '草稿';
+    case 'archived':
+      return '已归档';
     default:
       return '未知';
   }
@@ -433,20 +453,17 @@ const executeWorkflow = async (workflowId) => {
   executingWorkflows.value.push(workflowId);
   
   try {
-    // 模拟执行
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const response = await workflowApi.executeWorkflow(workflowId, {});
     
-    // 更新执行次数
-    const workflow = workflows.value.find(w => w.id === workflowId);
-    if (workflow) {
-      workflow.execution_count++;
-      workflow.updated_at = new Date();
+    if (response.status === 'success') {
+      toast.success('工作流执行成功');
+      await fetchWorkflows(); // 重新加载数据以更新执行次数
+    } else {
+      throw new Error(response.message || '执行失败');
     }
-    
-    toast.success('工作流执行成功');
   } catch (error) {
     console.error('执行工作流失败:', error);
-    toast.error('工作流执行失败');
+    toast.error('工作流执行失败：' + (error.message || '未知错误'));
   } finally {
     executingWorkflows.value = executingWorkflows.value.filter(id => id !== workflowId);
     openDropdown.value = null;
@@ -460,23 +477,30 @@ const editWorkflow = (workflowId) => {
 
 const duplicateWorkflow = async (workflowId) => {
   try {
-    const original = workflows.value.find(w => w.id === workflowId);
-    if (original) {
-      const newWorkflow = {
-        ...original,
-        id: Date.now(),
-        name: `${original.name} (副本)`,
-        status: 'draft',
-        execution_count: 0,
-        created_at: new Date(),
-        updated_at: new Date()
-      };
-      workflows.value.push(newWorkflow);
+    // 先获取原始工作流
+    const originalResponse = await workflowApi.getWorkflow(workflowId);
+    if (originalResponse.status !== 'success') {
+      throw new Error('获取原始工作流失败');
+    }
+    
+    const original = originalResponse.data;
+    const newWorkflowData = {
+      name: `${original.name} (副本)`,
+      description: original.description,
+      definition: original.definition,
+      status: 'draft'
+    };
+    
+    const response = await workflowApi.createWorkflow(newWorkflowData);
+    if (response.status === 'success') {
       toast.success('工作流复制成功');
+      await fetchWorkflows(); // 重新加载列表
+    } else {
+      throw new Error(response.message || '复制失败');
     }
   } catch (error) {
     console.error('复制工作流失败:', error);
-    toast.error('工作流复制失败');
+    toast.error('工作流复制失败：' + (error.message || '未知错误'));
   } finally {
     openDropdown.value = null;
   }
@@ -484,27 +508,38 @@ const duplicateWorkflow = async (workflowId) => {
 
 const archiveWorkflow = async (workflowId) => {
   try {
-    const workflow = workflows.value.find(w => w.id === workflowId);
-    if (workflow) {
-      workflow.status = 'archived';
-      workflow.updated_at = new Date();
+    const response = await workflowApi.updateWorkflow(workflowId, { status: 'archived' });
+    if (response.status === 'success') {
       toast.success('工作流已归档');
+      await fetchWorkflows(); // 重新加载列表
+    } else {
+      throw new Error(response.message || '归档失败');
     }
   } catch (error) {
     console.error('归档工作流失败:', error);
-    toast.error('工作流归档失败');
+    toast.error('工作流归档失败：' + (error.message || '未知错误'));
   } finally {
     openDropdown.value = null;
   }
 };
 
 const deleteWorkflow = async (workflowId) => {
+  if (!confirm('确定要删除这个工作流吗？此操作不可撤销。')) {
+    openDropdown.value = null;
+    return;
+  }
+  
   try {
-    workflows.value = workflows.value.filter(w => w.id !== workflowId);
-    toast.success('工作流已删除');
+    const response = await workflowApi.deleteWorkflow(workflowId);
+    if (response.status === 'success') {
+      toast.success('工作流已删除');
+      await fetchWorkflows(); // 重新加载列表
+    } else {
+      throw new Error(response.message || '删除失败');
+    }
   } catch (error) {
     console.error('删除工作流失败:', error);
-    toast.error('工作流删除失败');
+    toast.error('工作流删除失败：' + (error.message || '未知错误'));
   } finally {
     openDropdown.value = null;
   }
@@ -517,8 +552,9 @@ const handleClickOutside = (event) => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', handleClickOutside);
+  await fetchWorkflows();
 });
 
 onUnmounted(() => {
@@ -556,6 +592,11 @@ onUnmounted(() => {
 .badge-draft {
   background-color: #e5e7eb;
   color: #374151;
+}
+
+.badge-archived {
+  background-color: #fef2f2;
+  color: #b91c1c;
 }
 
 .line-clamp-2 {

@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '../stores/user'
-import Layout from '../components/layout/Layout.vue'
+import SidebarLayout from '../components/layout/SidebarLayout.vue'
 
 // 路由配置
 const routes = [
@@ -16,7 +16,7 @@ const routes = [
   },
   {
     path: '/',
-    component: Layout,
+    component: SidebarLayout,
     meta: { requiresAuth: true },
     children: [
       {
@@ -52,7 +52,7 @@ const routes = [
       {
         path: 'agents',
         name: 'Agents',
-        component: () => import('../views/agents/AgentList.vue'),
+        component: () => import('../views/agents/AgentMarket.vue'),
         meta: { requiresAuth: true }
       },
       {
@@ -68,9 +68,21 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
-        path: 'points',
-        name: 'Points',
-        component: () => import('../views/points/PointsView.vue'),
+        path: 'stats',
+        name: 'Stats',
+        component: () => import('../views/stats/StatsView.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'help',
+        name: 'Help',
+        component: () => import('../views/help/HelpCenter.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('../views/profile/ProfileView.vue'),
         meta: { requiresAuth: true }
       },
       {

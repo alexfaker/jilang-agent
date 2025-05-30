@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/alexfaker/jilang-agent/models"
 	"github.com/gin-gonic/gin"
@@ -38,7 +39,7 @@ func (h *GinPointsHandler) GetPointsBalance(c *gin.Context) {
 
 	// 查询用户信息
 	var user models.User
-	result := h.DB.First(&user, userID.(int64))
+	result := h.DB.Where("user_id = ?", userID.(string)).First(&user)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -46,7 +47,7 @@ func (h *GinPointsHandler) GetPointsBalance(c *gin.Context) {
 				"message": "用户不存在",
 			})
 		} else {
-			h.Logger.Error("获取用户信息失败", zap.Error(result.Error), zap.Int64("userId", userID.(int64)))
+			h.Logger.Error("获取用户信息失败", zap.Error(result.Error), zap.String("userId", userID.(string)))
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  "error",
 				"message": "获取用户信息失败",
@@ -100,7 +101,7 @@ func (h *GinPointsHandler) GetPointsTransactions(c *gin.Context) {
 	typeFilter := c.Query("type")
 
 	// 构建查询
-	query := h.DB.Model(&models.PointsTransaction{}).Where("user_id = ?", userID.(int64))
+	query := h.DB.Model(&models.PointsTransaction{}).Where("user_id = ?", userID.(string))
 
 	// 应用类型筛选
 	if typeFilter != "" {
@@ -163,7 +164,7 @@ func (h *GinPointsHandler) GetPointsTransaction(c *gin.Context) {
 
 	// 查询交易 - 验证所有权
 	var transaction models.PointsTransaction
-	result := h.DB.Where("id = ? AND user_id = ?", id, userID.(int64)).First(&transaction)
+	result := h.DB.Where("id = ? AND user_id = ?", id, userID.(string)).First(&transaction)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -199,12 +200,12 @@ func (h *GinPointsHandler) GetPointsStatistics(c *gin.Context) {
 		return
 	}
 
-	uid := userID.(int64)
+	uid := userID.(string)
 
 	// 查询用户当前余额
 	var user models.User
-	if err := h.DB.First(&user, uid).Error; err != nil {
-		h.Logger.Error("获取用户信息失败", zap.Error(err), zap.Int64("userId", uid))
+	if err := h.DB.Where("user_id = ?", uid).First(&user).Error; err != nil {
+		h.Logger.Error("获取用户信息失败", zap.Error(err), zap.String("userId", uid))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",
 			"message": "获取用户信息失败",
@@ -235,10 +236,11 @@ func (h *GinPointsHandler) GetPointsStatistics(c *gin.Context) {
 		Where("user_id = ? AND agent_id IS NOT NULL", uid).
 		Count(&workflowCount)
 
-	// 统计最近30天的交易
+	// 统计最近30天的交易 - 使用GORM标准方法
+	thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
 	var recentTransactionCount int64
 	h.DB.Model(&models.PointsTransaction{}).
-		Where("user_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)", uid).
+		Where("user_id = ? AND created_at >= ?", uid, thirtyDaysAgo).
 		Count(&recentTransactionCount)
 
 	// 返回统计信息

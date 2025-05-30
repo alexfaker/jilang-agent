@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -14,6 +15,7 @@ type OrderStatus string
 const (
 	OrderStatusPending   OrderStatus = "pending"   // 待支付
 	OrderStatusPaid      OrderStatus = "paid"      // 已支付
+	OrderStatusCompleted OrderStatus = "completed" // 已完成
 	OrderStatusCancelled OrderStatus = "cancelled" // 已取消
 	OrderStatusRefunded  OrderStatus = "refunded"  // 已退款
 )
@@ -25,20 +27,21 @@ const (
 	PaymentMethodAlipay PaymentMethod = "alipay" // 支付宝
 	PaymentMethodWechat PaymentMethod = "wechat" // 微信支付
 	PaymentMethodUnion  PaymentMethod = "union"  // 银联
+	PaymentMethodCredit PaymentMethod = "credit" // 银行卡
 	PaymentMethodPaypal PaymentMethod = "paypal" // PayPal
 )
 
 // RechargeOrder 充值订单模型
 type RechargeOrder struct {
 	ID            int64         `json:"id" gorm:"primaryKey;autoIncrement"`
-	UserID        int64         `json:"userId" gorm:"column:user_id;index;not null"`
-	OrderNo       string        `json:"orderNo" gorm:"column:order_no;uniqueIndex;not null"` // 订单号
-	Amount        int           `json:"amount" gorm:"not null"`                              // 充值金额（分）
-	Points        int           `json:"points" gorm:"not null"`                              // 获得点数
+	UserID        string        `json:"userID" gorm:"column:user_id;index;not null"`
+	OrderNo       string        `json:"orderNo" gorm:"column:order_no;type:varchar(64);uniqueIndex;not null"` // 订单号
+	Amount        int           `json:"amount" gorm:"not null"`                                               // 充值金额（分）
+	Points        int           `json:"points" gorm:"not null"`                                               // 获得点数
 	PaymentMethod PaymentMethod `json:"paymentMethod" gorm:"column:payment_method;type:varchar(20);not null"`
 	Status        OrderStatus   `json:"status" gorm:"type:varchar(20);default:'pending';not null"`
-	PaymentID     string        `json:"paymentId" gorm:"column:payment_id;index"` // 第三方支付ID
-	PaidAt        *time.Time    `json:"paidAt" gorm:"column:paid_at"`             // 支付时间
+	PaymentID     string        `json:"paymentId" gorm:"column:payment_id;type:varchar(255);index"` // 第三方支付ID
+	PaidAt        *time.Time    `json:"paidAt" gorm:"column:paid_at"`                               // 支付时间
 	CreatedAt     time.Time     `json:"createdAt" gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt     time.Time     `json:"updatedAt" gorm:"column:updated_at;autoUpdateTime"`
 }
@@ -61,7 +64,7 @@ type RechargePackage struct {
 
 // RechargeOrderCreateInput 创建充值订单输入
 type RechargeOrderCreateInput struct {
-	UserID        int64         `json:"userId" validate:"required"`
+	UserID        string        `json:"userID" validate:"required"`
 	Amount        int           `json:"amount" validate:"required,min=1"`
 	Points        int           `json:"points" validate:"required,min=1"`
 	PaymentMethod PaymentMethod `json:"paymentMethod" validate:"required"`
@@ -94,7 +97,6 @@ func CreateRechargeOrder(db *sql.DB, input RechargeOrderCreateInput) (*RechargeO
 		order.Points,
 		order.PaymentMethod,
 	).Scan(&order.ID, &order.CreatedAt, &order.UpdatedAt)
-
 	if err != nil {
 		return nil, fmt.Errorf("创建充值订单失败: %w", err)
 	}
@@ -127,7 +129,6 @@ func GetRechargeOrder(db *sql.DB, id int64) (*RechargeOrder, error) {
 		&order.CreatedAt,
 		&order.UpdatedAt,
 	)
-
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("订单不存在")
@@ -171,7 +172,6 @@ func GetRechargeOrderByOrderNo(db *sql.DB, orderNo string) (*RechargeOrder, erro
 		&order.CreatedAt,
 		&order.UpdatedAt,
 	)
-
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("订单不存在")
@@ -325,7 +325,8 @@ func GetRechargePackages() []*RechargePackage {
 
 // generateOrderNo 生成订单号
 func generateOrderNo() string {
-	return fmt.Sprintf("RO%d", time.Now().UnixNano())
+	// 使用UUID生成唯一订单号，前缀RO表示充值订单
+	return fmt.Sprintf("RO%s", uuid.New().String())
 }
 
 // CreateRechargeOrderGorm 使用GORM创建充值订单
@@ -367,4 +368,10 @@ func (o *RechargeOrder) UpdateStatusGorm(db *gorm.DB, status OrderStatus, paymen
 	o.PaymentID = paymentID
 
 	return nil
+}
+
+// GenerateOrderNo 生成订单号
+func (o *RechargeOrder) GenerateOrderNo() string {
+	// 使用UUID生成唯一订单号，前缀RO表示充值订单
+	return fmt.Sprintf("RO%s", uuid.New().String())
 }

@@ -21,7 +21,7 @@ const (
 // PointsTransaction 点数交易记录模型
 type PointsTransaction struct {
 	ID          int64           `json:"id" gorm:"primaryKey;autoIncrement"`
-	UserID      int64           `json:"userId" gorm:"column:user_id;index;not null"`
+	UserID      string          `json:"userID" gorm:"column:user_id;index;not null"`
 	Type        TransactionType `json:"type" gorm:"type:varchar(20);not null"`
 	Amount      int             `json:"amount" gorm:"not null"`                   // 正数为增加，负数为减少
 	Balance     int             `json:"balance" gorm:"not null"`                  // 交易后余额
@@ -37,7 +37,7 @@ func (PointsTransaction) TableName() string {
 
 // PointsTransactionCreateInput 创建点数交易输入
 type PointsTransactionCreateInput struct {
-	UserID      int64           `json:"userId" validate:"required"`
+	UserID      string          `json:"userID" validate:"required"`
 	Type        TransactionType `json:"type" validate:"required"`
 	Amount      int             `json:"amount" validate:"required"`
 	Description string          `json:"description"`

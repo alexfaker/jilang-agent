@@ -22,10 +22,10 @@ export const useUserStore = defineStore('user', {
       
       try {
         const response = await authApi.login(credentials);
-        this.user = response.user;
+        this.user = response.data.user;
         this.isAuthenticated = true;
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
         
         // 登录成功后同步设置
         this.syncSettingsAfterLogin();
@@ -45,10 +45,10 @@ export const useUserStore = defineStore('user', {
       
       try {
         const response = await authApi.register(userData);
-        this.user = response.user;
+        this.user = response.data.user;
         this.isAuthenticated = true;
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
         
         // 注册成功后同步设置
         this.syncSettingsAfterLogin();

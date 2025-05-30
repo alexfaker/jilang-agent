@@ -61,7 +61,7 @@ func (h *GinPurchaseHandler) PurchaseAgent(c *gin.Context) {
 		return
 	}
 
-	uid := userID.(int64)
+	uid := userID.(string)
 
 	// 使用事务处理购买流程
 	err := h.DB.Transaction(func(tx *gorm.DB) error {
@@ -143,7 +143,7 @@ func (h *GinPurchaseHandler) PurchaseAgent(c *gin.Context) {
 				"message": purchaseErr.Message,
 			})
 		} else {
-			h.Logger.Error("购买代理失败", zap.Error(err), zap.Int64("agentId", req.AgentID), zap.Int64("userId", uid))
+			h.Logger.Error("购买代理失败", zap.Error(err), zap.Int64("agentId", req.AgentID), zap.String("userId", uid))
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  "error",
 				"message": "购买代理失败",

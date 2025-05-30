@@ -52,9 +52,7 @@
             class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
           >
             <option value="">所有工作流</option>
-            <option value="wf1">数据处理自动化</option>
-            <option value="wf2">客户反馈分析</option>
-            <option value="wf3">内容生成与分发</option>
+            <option v-for="workflow in workflows" :key="workflow.id" :value="workflow.id">{{ workflow.name }}</option>
           </select>
           
           <select 
@@ -131,21 +129,21 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="execution in executions" :key="execution.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                #EXE-{{ execution.id.substring(0, 5) }}
+                #EXE-{{ execution.id.toString().substring(0, 5) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 <div class="flex items-center">
                   <RectangleGroupIcon class="w-5 h-5 text-indigo-500 mr-2" />
                   <router-link 
-                    :to="`/workflows/${execution.workflow_id}`" 
+                    :to="`/workflows/${execution.workflowId || execution.workflow_id}`" 
                     class="hover:text-indigo-600 transition-colors"
                   >
-                    {{ execution.workflow_name || execution.workflowName }}
+                    {{ execution.workflowName || execution.workflow_name || '未知工作流' }}
                   </router-link>
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ formatDate(execution.start_time || execution.startedAt) }}
+                {{ formatDate(execution.startedAt || execution.started_at || execution.start_time) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {{ formatDuration(execution.duration) }}
@@ -159,7 +157,7 @@
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ triggerText(execution.trigger_type || execution.triggerType) }}
+                {{ triggerText(execution.trigger_type || execution.triggerType || 'manual') }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <router-link
@@ -259,6 +257,8 @@ import { zhCN } from 'date-fns/locale';
 import { useToast } from 'vue-toastification';
 import { useExecutionStore } from '../../stores/execution';
 import { useRouter } from 'vue-router';
+import { executionApi } from '../../api';
+import { workflowApi } from '../../api';
 import {
   ArrowPathIcon,
   ArrowDownTrayIcon,
@@ -284,6 +284,9 @@ const totalItems = ref(0);
 const currentPage = ref(1);
 const pageSize = ref(10);
 const error = ref(null);
+
+// 工作流列表（用于筛选器）
+const workflows = ref([]);
 
 // 计算属性
 const totalPages = computed(() => Math.ceil(totalItems.value / pageSize.value) || 1);
@@ -327,68 +330,82 @@ const displayedPages = computed(() => {
 });
 
 // 方法
+const fetchWorkflows = async () => {
+  try {
+    const response = await workflowApi.getWorkflows({ status: 'active' });
+    if (response.status === 'success') {
+      workflows.value = response.data.workflows || [];
+    }
+  } catch (err) {
+    console.error('获取工作流列表失败:', err);
+    // 不显示错误提示，因为这只是为了筛选器
+  }
+};
+
 const fetchExecutions = async () => {
   loading.value = true;
   error.value = null;
   
   try {
-    // 模拟数据，实际应该调用API
-    const mockData = [
-      {
-        id: 'exe12345',
-        workflow_id: 'wf1',
-        workflow_name: '数据处理自动化',
-        start_time: new Date(Date.now() - 10 * 60 * 1000),
-        duration: 200,
-        status: 'success',
-        trigger_type: 'manual'
-      },
-      {
-        id: 'exe12344',
-        workflow_id: 'wf2',
-        workflow_name: '客户反馈分析',
-        start_time: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        duration: 432,
-        status: 'warning',
-        trigger_type: 'api'
-      },
-      {
-        id: 'exe12343',
-        workflow_id: 'wf1',
-        workflow_name: '数据处理自动化',
-        start_time: new Date(Date.now() - 24 * 60 * 60 * 1000),
-        duration: 222,
-        status: 'success',
-        trigger_type: 'schedule'
-      },
-      {
-        id: 'exe12342',
-        workflow_id: 'wf3',
-        workflow_name: '内容生成与分发',
-        start_time: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        duration: 725,
-        status: 'failed',
-        trigger_type: 'manual'
-      },
-      {
-        id: 'exe12341',
-        workflow_id: 'wf1',
-        workflow_name: '数据处理自动化',
-        start_time: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-        duration: 235,
-        status: 'failed',
-        trigger_type: 'schedule'
+    // 构建查询参数
+    const params = {
+      page: currentPage.value,
+      page_size: pageSize.value
+    };
+    
+    // 添加筛选条件
+    if (workflowFilter.value) {
+      params.workflow_id = workflowFilter.value;
+    }
+    
+    if (statusFilter.value) {
+      params.status = statusFilter.value;
+    }
+    
+    if (searchQuery.value.trim()) {
+      params.search = searchQuery.value.trim();
+    }
+    
+    // 根据时间筛选添加日期范围
+    if (timeFilter.value !== 'all') {
+      const now = new Date();
+      let startDate;
+      
+      switch (timeFilter.value) {
+        case '7d':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '30d':
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case '90d':
+          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
       }
-    ];
+      
+      if (startDate) {
+        params.start_time = startDate.toISOString().split('T')[0];
+        params.end_time = now.toISOString().split('T')[0];
+      }
+    }
     
-    executions.value = mockData;
-    totalItems.value = mockData.length;
+    // 调用API
+    const response = await executionApi.getExecutions(params);
     
-    await new Promise(resolve => setTimeout(resolve, 500));
+    if (response.status === 'success') {
+      executions.value = response.data.executions || [];
+      const pagination = response.data.pagination || {};
+      totalItems.value = pagination.total || 0;
+      currentPage.value = pagination.page || 1;
+    } else {
+      throw new Error(response.message || '获取执行历史失败');
+    }
   } catch (err) {
     console.error('获取执行历史失败:', err);
     error.value = err.message || '获取执行历史失败';
     toast.error(`获取执行历史失败: ${err.message || '未知错误'}`);
+    executions.value = [];
+    totalItems.value = 0;
   } finally {
     loading.value = false;
   }
@@ -431,11 +448,13 @@ const goToPage = (page) => {
 const statusText = (status) => {
   const statusMap = {
     success: '成功',
+    succeeded: '成功',
     failed: '失败',
     warning: '部分成功',
     running: '运行中',
     pending: '等待中',
-    cancelled: '已取消'
+    cancelled: '已取消',
+    canceled: '已取消'
   };
   return statusMap[status] || status;
 };
@@ -443,11 +462,13 @@ const statusText = (status) => {
 const statusBadgeClass = (status) => {
   const badgeMap = {
     success: 'bg-green-100 text-green-800',
+    succeeded: 'bg-green-100 text-green-800',
     failed: 'bg-red-100 text-red-800',
     warning: 'bg-yellow-100 text-yellow-800',
     running: 'bg-blue-100 text-blue-800',
     pending: 'bg-gray-100 text-gray-800',
-    cancelled: 'bg-gray-100 text-gray-800'
+    cancelled: 'bg-gray-100 text-gray-800',
+    canceled: 'bg-gray-100 text-gray-800'
   };
   return badgeMap[status] || 'bg-gray-100 text-gray-800';
 };
@@ -467,13 +488,35 @@ const exportExecutions = () => {
   toast.info('导出功能开发中...');
 };
 
-const rerunExecution = (execution) => {
-  if (confirm(`确定要重新执行工作流"${execution.workflow_name}"吗？`)) {
-    toast.success('工作流已开始重新执行');
+const rerunExecution = async (execution) => {
+  if (!confirm(`确定要重新执行工作流"${execution.workflow_name || execution.workflowName}"吗？`)) {
+    return;
+  }
+  
+  try {
+    // 调用工作流执行API
+    const workflowId = execution.workflow_id || execution.workflowId;
+    const executeResponse = await workflowApi.executeWorkflow(workflowId, {
+      inputs: execution.input_data || execution.inputData || {}
+    });
+    
+    if (executeResponse.status === 'success') {
+      toast.success('工作流已开始重新执行');
+      // 刷新执行列表
+      await fetchExecutions();
+    } else {
+      throw new Error(executeResponse.message || '重新执行失败');
+    }
+  } catch (err) {
+    console.error('重新执行工作流失败:', err);
+    toast.error('重新执行失败：' + (err.message || '未知错误'));
   }
 };
 
 onMounted(() => {
-  fetchExecutions();
+  Promise.all([
+    fetchWorkflows(),
+    fetchExecutions()
+  ]);
 });
 </script> 

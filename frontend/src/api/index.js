@@ -28,6 +28,7 @@ apiClient.interceptors.request.use(
 // 响应拦截器
 apiClient.interceptors.response.use(
   response => {
+    // 返回完整的响应数据，保持后端统一响应格式 {code, message, data}
     return response.data;
   },
   error => {
@@ -46,7 +47,7 @@ apiClient.interceptors.response.use(
           toast.error('未授权，请重新登录');
           // 清除token并跳转到登录页
           localStorage.removeItem('token');
-          window.location.href = '/login';
+          window.location.href = '/auth/login';
           break;
         case 403:
           toast.error(`拒绝访问: ${data.message || '权限不足'}`);
@@ -171,7 +172,9 @@ export const agentApi = {
   createAgent: (data) => apiClient.post('/agents', data),
   updateAgent: (id, data) => apiClient.put(`/agents/${id}`, data),
   deleteAgent: (id) => apiClient.delete(`/agents/${id}`),
-  testAgent: (id) => apiClient.post(`/agents/${id}/test`)
+  testAgent: (id) => apiClient.post(`/agents/${id}/test`),
+  purchaseAgent: (agentId) => apiClient.post('/purchase/agent', { agentId }),
+  createWorkflow: (data) => apiClient.post('/workflows', data)
 };
 
 // 统计相关API
@@ -183,9 +186,10 @@ export const statsApi = {
 
 // 积分相关API
 export const pointsApi = {
-  getPoints: () => apiClient.get('/points'),
-  getPointsHistory: (params) => apiClient.get('/points/history', { params }),
-  usePoints: (data) => apiClient.post('/points/use', data)
+  getPointsBalance: () => apiClient.get('/points/balance'),
+  getPointsHistory: (params) => apiClient.get('/points/transactions', { params }),
+  getPointsStatistics: () => apiClient.get('/points/statistics'),
+  getPointsTransaction: (id) => apiClient.get(`/points/transactions/${id}`)
 };
 
 // 充值相关API

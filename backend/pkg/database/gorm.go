@@ -79,6 +79,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.Workflow{},
 		&models.WorkflowExecution{},
 		&models.Agent{},
+		&models.PointsTransaction{},
+		&models.RechargeOrder{},
 	)
 }
 
